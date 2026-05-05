@@ -3,20 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Layout from './components/Layout';
 import LeadTable from './components/LeadTable';
 import LeadFormModal from './components/LeadFormModal';
 import FilterBar from './components/FilterBar';
 import Settings from './components/Settings';
 import LoginScreen from './components/LoginScreen';
-import OverviewCharts from './components/OverviewCharts';
+import UpcomingReminders from './components/UpcomingReminders';
 import { Lead, CRMUser } from './types';
 import { gasService } from './services/gasService';
 
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { Download } from 'lucide-react';
+
+const OverviewCharts = React.lazy(() => import('./components/OverviewCharts'));
 
 function exportToCSV(data: any[], filename: string) {
   if (data.length === 0) {
@@ -71,7 +73,21 @@ function exportToCSV(data: any[], filename: string) {
 export type UserRole = 'admin' | 'mkt' | 'sale' | null;
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<CRMUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<CRMUser | null>(() => {
+    const saved = localStorage.getItem('sen_crm_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('sen_crm_user');
+  };
+
+  const handleLogin = (user: CRMUser) => {
+    setCurrentUser(user);
+    localStorage.setItem('sen_crm_user', JSON.stringify(user));
+  };
+  
   const [currentRoute, setCurrentRoute] = useState<'dashboard' | 'settings'>('dashboard');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -199,7 +215,7 @@ export default function App() {
   }, [refreshTrigger, currentUser]);
 
   if (!currentUser) {
-    return <LoginScreen onLogin={setCurrentUser} />;
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   const handleOpenNew = () => {
@@ -253,7 +269,7 @@ export default function App() {
         </div>
       ) : null}
       currentUser={currentUser}
-      onLogout={() => setCurrentUser(null)}
+      onLogout={handleLogout}
     >
       {currentRoute === 'dashboard' && (
         <div className="space-y-6 h-full flex flex-col">
@@ -279,7 +295,12 @@ export default function App() {
             <StatCard title="Tổng Doanh thu (Đã chốt)" value={formattedRevenue} trend="VNĐ" positive />
           </div>
 
-          {!loading && filteredLeads.length > 0 && <OverviewCharts leads={filteredLeads} />}
+          {!loading && filteredLeads.length > 0 && <UpcomingReminders leads={filteredLeads} onEditLead={handleEditLead} />}
+          {!loading && filteredLeads.length > 0 && (
+             <Suspense fallback={<div className="h-64 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-gray-500 text-sm">Đang tải biểu đồ...</div>}>
+               <OverviewCharts leads={filteredLeads} />
+             </Suspense>
+          )}
 
           {/* Lead Table */}
           <div className="flex-1 min-h-[500px] animate-in slide-in-from-bottom-4">

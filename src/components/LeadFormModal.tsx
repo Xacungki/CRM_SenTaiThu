@@ -323,6 +323,37 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
                     )
                   })}
                 </div>
+
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-600" /> Lên lịch nhắc nhở / Chăm sóc tiếp theo
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ngày giờ nhắc nhở</label>
+                      <input 
+                        disabled={isCskhDisabled}
+                        type="datetime-local" 
+                        name="nextCareDate" 
+                        value={formData.nextCareDate || ''} 
+                        onChange={handleChange} 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white disabled:bg-gray-100" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung chăm sóc</label>
+                      <input 
+                        disabled={isCskhDisabled}
+                        type="text" 
+                        name="nextCareNote" 
+                        value={formData.nextCareNote || ''} 
+                        onChange={handleChange} 
+                        placeholder="VD: Gọi lại xác nhận đặt lịch..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white disabled:bg-gray-100" 
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

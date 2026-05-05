@@ -67,6 +67,10 @@ export interface Lead {
   customerCount?: string | number; // Cột: Số lượng khách
   unitPrice?: string | number; // Cột: Đơn giá
   totalAmount?: string | number; // Cột: Thành tiền
+  
+  // Schedule/Reminder
+  nextCareDate?: string; // Cột: Ngày hẹn CSKH
+  nextCareNote?: string; // Cột: Nội dung nhắc nhở
 
   // Dynamic Keys
   [key: string]: any;

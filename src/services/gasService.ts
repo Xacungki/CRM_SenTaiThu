@@ -12,8 +12,15 @@ export const gasService = {
     try {
       const response = await fetch(`${url}?action=GET_LEADS`);
       const json = await response.json();
+      
+      // Filter out empty rows (rows where essential fields like ID or Phone are missing)
+      const validRows = (json.data || []).filter((row: any) => {
+        // A row is valid if it has at least an ID, Phone, or Full Name
+        return row['ID'] || row['Số điện thoại'] || row['Họ và tên'];
+      });
+
       return {
-        leads: json.data.map(mapSheetRowToLead),
+        leads: validRows.map(mapSheetRowToLead),
         schema: json.schema || []
       };
     } catch (error) {
@@ -223,6 +230,8 @@ function mapSheetRowToLead(row: any): Lead {
     customerCount: row['Số lượng khách'] || '',
     unitPrice: row['Đơn giá'] || '',
     totalAmount: row['Thành tiền'] || '',
+    nextCareDate: row['Ngày hẹn CSKH'] || '',
+    nextCareNote: row['Nội dung nhắc nhở'] || '',
   };
 }
 
@@ -258,6 +267,8 @@ function mapLeadToSheetRow(lead: Partial<Lead>): any {
     'Số lượng khách': lead.customerCount,
     'Đơn giá': lead.unitPrice,
     'Thành tiền': lead.totalAmount,
+    'Ngày hẹn CSKH': lead.nextCareDate,
+    'Nội dung nhắc nhở': lead.nextCareNote,
   };
   
   // Also pass any other keys that were dynamically included

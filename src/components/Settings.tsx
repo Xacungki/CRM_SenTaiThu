@@ -627,11 +627,23 @@ function doGet(e) {
     // Default: GET_LEADS
     const sheet = ss.getSheetByName('ALL DATA');
     const data = sheet.getDataRange().getValues();
-    const headers = data[1];
+    const headers = data[1]; // Header is on row 2
     const rows = data.slice(2);
     
-    const result = rows.map((row, index) => {
-      let obj = { _rowIndex: index + 3 };
+    // Server-side filter for empty rows
+    const result = rows.filter(row => {
+      // Row is valid if identity column (ID or Phone or Name) is not empty
+      // Assuming ID is column 0, Name is 2, Phone is 3 based on standard mapping
+      return row[0] || row[2] || row[3];
+    }).map((row, index) => {
+      // We need to keep track of the original row index in the sheet for updates
+      // However, filter() changes index, so we find original index
+      let originalRowIndex = -1;
+      for(let i=0; i<rows.length; i++){
+        if(rows[i] === row) { originalRowIndex = i + 3; break; }
+      }
+      
+      let obj = { _rowIndex: originalRowIndex };
       headers.forEach((header, i) => {
         if(header) {
            let val = row[i];
@@ -688,6 +700,7 @@ function doPost(e) {
              return "";
         });
         sheet.appendRow(newRow);
+        SpreadsheetApp.flush(); // Force save
         return ContentService.createTextOutput("EVENT_RECEIVED");
       } catch(err) {}
     }
@@ -710,6 +723,7 @@ function doPost(e) {
              return "";
         });
         sheet.appendRow(newRow);
+        SpreadsheetApp.flush(); // Force save
         return ContentService.createTextOutput("EVENT_RECEIVED");
       } catch(err) {}
     }
@@ -719,6 +733,7 @@ function doPost(e) {
     
     if (action === 'UPDATE_SCHEMA') {
       sheet.getRange(2, 1, 1, payload.headers.length).setValues([payload.headers]);
+      SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -732,6 +747,7 @@ function doPost(e) {
          const rows = payload.map(u => [u.username, u.password, u.role, u.branch, u.status]);
          userSheet.getRange(2, 1, rows.length, 5).setValues(rows);
        }
+       SpreadsheetApp.flush();
        return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -745,6 +761,7 @@ function doPost(e) {
          const rows = payload.map(r => [r['Chi nhánh'], r['Tài khoản Admin'], r['Nhân viên được chỉ định']]);
          branchSheet.getRange(2, 1, rows.length, 3).setValues(rows);
        }
+       SpreadsheetApp.flush();
        return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -757,6 +774,7 @@ function doPost(e) {
        if (payload) {
          auditSheet.appendRow([payload.timestamp, payload.user, payload.action, payload.branch || '', payload.targetId || '', payload.targetName || '', payload.details || '']);
        }
+       SpreadsheetApp.flush();
        return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -777,6 +795,7 @@ function doPost(e) {
          return val;
       });
       sheet.appendRow(newRow);
+      SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "CREATE" })).setMimeType(ContentService.MimeType.JSON);
     } else if (action === 'UPDATE') {
       const rowIndex = payload._rowIndex;
@@ -787,6 +806,7 @@ function doPost(e) {
           return payload[key] !== undefined ? payload[key] : currentValues[i];
       });
       sheet.getRange(rowIndex, 1, 1, headers.length).setValues([updateData]);
+      SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "UPDATE" })).setMimeType(ContentService.MimeType.JSON);
     }
   } catch (error) {
