@@ -4,6 +4,42 @@ const getGasUrl = () => {
   return localStorage.getItem('sen_crm_gas_url') || import.meta.env.VITE_GAS_URL;
 };
 
+// Define key mapping locally for parsing new JSON format
+const KEY_MAPPING = {
+  id: 'ID',
+  date: 'Ngày', // Will handle 'Ngày ' below
+  fullName: 'Họ và tên',
+  phone: 'Số điện thoại',
+  branch: 'Chi nhánh',
+  source: 'Nguồn',
+  adsStaff: 'Nhân viên Ads',
+  note: 'Ghi chú',
+  dataType: 'Phân loại Data',
+  cskhStaff: 'Nhân viên CSKH',
+  care1: 'Chăm sóc lần 1',
+  time1: 'Thời gian csl1',
+  care2: 'Chăm sóc lần 2',
+  time2: 'Thời gian csl2',
+  care3: 'Chăm sóc lần 3',
+  time3: 'Thời gian csl3',
+  care4: 'Chăm sóc lần 4',
+  time4: 'Thời gian csl4',
+  care5: 'Chăm sóc lần 5',
+  time5: 'Thời gian csl5',
+  care6: 'Chăm sóc lần 6',
+  time6: 'Thời gian csl6',
+  care7: 'Chăm sóc lần 7',
+  time7: 'Thời gian csl7',
+  lastCareStatus: 'Lần chăm sóc cuối cùng',
+  finalStatus: 'Tình trạng chốt',
+  customerCount: 'Số lượng khách',
+  unitPrice: 'Đơn giá',
+  totalAmount: 'Thành tiền',
+  cskhNote: 'Nội dung CSKH',
+  nextCareDate: 'Ngày hẹn CSKH',
+  nextCareNote: 'Nội dung nhắc nhở',
+};
+
 export const gasService = {
   async getAppData(): Promise<{ leads: Lead[], schema: string[], dropdowns: Record<string, string[]>, branchRoles: BranchRole[] } | null> {
     const url = getGasUrl();
@@ -17,7 +53,7 @@ export const gasService = {
             const data: any = { _rowIndex: row._rowIndex };
             Object.keys(row).forEach(key => {
               if (key !== '_rowIndex') {
-                const mappedKey = Object.keys(KEY_MAPPING).find(k => KEY_MAPPING[k as keyof typeof KEY_MAPPING] === key);
+                const mappedKey = Object.keys(KEY_MAPPING).find(k => KEY_MAPPING[k as keyof typeof KEY_MAPPING] === key || (key === 'Ngày ' && k === 'date'));
                 if (mappedKey) {
                    data[mappedKey] = row[key];
                 } else {
@@ -30,7 +66,7 @@ export const gasService = {
          });
          
          return {
-            leads: leadsData.reverse(),
+            leads: leadsData,
             schema: json.schema || [],
             dropdowns: json.dropdowns || {},
             branchRoles: json.branchRoles || []
@@ -331,6 +367,7 @@ function mapSheetRowToLead(row: any): Lead {
     customerCount: row['Số lượng khách'] || '',
     unitPrice: row['Đơn giá'] || '',
     totalAmount: row['Thành tiền'] || '',
+    cskhNote: row['Nội dung CSKH'] || '',
     nextCareDate: row['Ngày hẹn CSKH'] || '',
     nextCareNote: row['Nội dung nhắc nhở'] || '',
   };
@@ -368,6 +405,7 @@ function mapLeadToSheetRow(lead: Partial<Lead>): any {
     'Số lượng khách': lead.customerCount,
     'Đơn giá': lead.unitPrice,
     'Thành tiền': lead.totalAmount,
+    'Nội dung CSKH': lead.cskhNote,
     'Ngày hẹn CSKH': lead.nextCareDate,
     'Nội dung nhắc nhở': lead.nextCareNote,
   };

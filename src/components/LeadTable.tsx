@@ -111,8 +111,75 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
         </div>
       </div>
 
-      <div className="overflow-x-auto flex-1 h-[500px]">
-        <table className="w-full text-left text-sm whitespace-nowrap">
+      <div className="overflow-y-auto overflow-x-hidden flex-1 h-[500px]">
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {loading ? (
+            <div className="p-8 text-center text-gray-500 flex flex-col items-center justify-center">
+              <RefreshCcw className="w-8 h-8 animate-spin text-gray-900 mb-2" />
+              <p>Đang tải dữ liệu từ Google Sheets...</p>
+            </div>
+          ) : paginatedLeads.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              Không có dữ liệu
+            </div>
+          ) : (
+            paginatedLeads.map((lead, i) => (
+              <div key={lead.id || i} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer relative" onClick={() => onEditLead?.(lead)}>
+                <div className="flex justify-between items-start mb-2">
+                  <div className="font-medium text-gray-900">{lead.fullName || '---'}</div>
+                  {lead.finalStatus ? (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${
+                      lead.finalStatus.includes('Đã chốt') 
+                        ? 'bg-green-50 text-green-700 border-green-200'
+                        : 'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                      {lead.finalStatus}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 italic">Đang bám sát</span>
+                  )}
+                </div>
+                
+                <div className="flex flex-col gap-1.5 text-xs text-gray-600 mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{lead.phone || '---'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{lead.branch || '---'} {lead.note ? `- ${lead.note}` : ''}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-end mt-3 pt-3 border-t border-gray-50">
+                  <div className="flex flex-col gap-1">
+                     <span className="text-[10px] text-gray-500">MKT: {lead.adsStaff || '-'}</span>
+                     <span className="text-[10px] text-gray-500">Sale: {lead.cskhStaff || '-'}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {lead.source && (
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700">
+                        {lead.source}
+                      </span>
+                    )}
+                    {lead.dataType && (
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-orange-50 text-orange-700">
+                        {lead.dataType}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="absolute top-4 right-4 md:hidden opacity-0 pointer-events-none">
+                  <Edit2 className="w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <table className="hidden md:table w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-gray-50 text-gray-600 font-medium sticky top-0 z-10">
             <tr>
               <th className="px-6 py-3 border-b border-gray-200">Khách Hàng</th>
@@ -233,10 +300,10 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
 
       {/* Pagination Controls */}
       {!loading && filteredLeads.length > 0 && (
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <div className="flex items-center gap-4">
+        <div className="px-4 md:px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50">
+          <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start gap-4">
             <span className="text-sm text-gray-500">
-              Hiển thị {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredLeads.length)} trong {filteredLeads.length} khách hàng
+              Hiển thị {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredLeads.length)} <span className="hidden sm:inline">trong {filteredLeads.length} khách hàng</span>
             </span>
             <select 
               className="text-sm border-gray-300 rounded-md bg-white border outline-none px-2 py-1"

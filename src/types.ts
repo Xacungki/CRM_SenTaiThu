@@ -69,6 +69,7 @@ export interface Lead {
   totalAmount?: string | number; // Cột: Thành tiền
   
   // Schedule/Reminder
+  cskhNote?: string; // Cột: Nội dung CSKH
   nextCareDate?: string; // Cột: Ngày hẹn CSKH
   nextCareNote?: string; // Cột: Nội dung nhắc nhở
 

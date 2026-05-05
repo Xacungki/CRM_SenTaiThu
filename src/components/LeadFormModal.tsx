@@ -398,6 +398,21 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
 
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    Nội dung CSKH (Ghi chú chi tiết)
+                  </h4>
+                  <textarea
+                    disabled={isCskhDisabled}
+                    name="cskhNote"
+                    value={formData.cskhNote || ''}
+                    onChange={handleChange}
+                    rows={4}
+                    placeholder="Nhập chi tiết quá trình trao đổi, chăm sóc khách hàng..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-gray-900 text-sm disabled:bg-gray-100"
+                  />
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-blue-600" /> Lên lịch nhắc nhở / Chăm sóc tiếp theo
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">

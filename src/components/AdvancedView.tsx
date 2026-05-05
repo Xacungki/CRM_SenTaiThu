@@ -241,6 +241,16 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                                     }
                                     return lead.date;
                                  })();
+                                 
+                                 const allCares = [];
+                                 for(let i=1; i<=7; i++) {
+                                     const careInfo = (lead as any)?.[`care${i}`];
+                                     if (careInfo && careInfo !== 'Trống') {
+                                        allCares.push({ step: i, text: careInfo, time: (lead as any)?.[`time${i}`] });
+                                     }
+                                 }
+                                 const recentCares = allCares.slice(-2);
+
                                  return (
                                  <div 
                                    key={lead.id} 
@@ -257,6 +267,18 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                                         <div className="text-xs text-gray-400 whitespace-nowrap ml-2">{fDate}</div>
                                      </div>
                                      <div className="text-sm text-gray-600 font-medium">{lead.phone}</div>
+                                     
+                                     {recentCares.length > 0 && (
+                                        <div className="mt-1 pt-2 border-t border-gray-50 flex flex-col gap-1.5">
+                                           {recentCares.map((c, idx) => (
+                                              <div key={idx} className="text-xs text-gray-600 bg-gray-50 p-1.5 rounded flex flex-col">
+                                                 <span className="font-medium text-gray-700">Lần {c.step}: {c.text}</span>
+                                                 {c.time && <span className="text-[10px] text-gray-400">{c.time}</span>}
+                                              </div>
+                                           ))}
+                                        </div>
+                                     )}
+
                                      <div className="flex gap-1.5 flex-wrap mt-1">
                                          <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded capitalize">{lead.source || 'N/A'}</span>
                                          <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded capitalize">{lead.branch || 'N/A'}</span>
@@ -299,13 +321,26 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                                    <div className="text-xs text-gray-500 mt-1">Từ nguồn: {lead.source || 'N/A'}</div>
                                </div>
                                <div className="w-full sm:w-1/2 sm:pl-8 text-left cursor-pointer group" onClick={() => onRowClick(lead)}>
-                                  <div className="bg-white p-4 border border-gray-100 rounded-xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all relative">
+                                  <div className="bg-white p-5 border border-gray-100 rounded-xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all relative">
                                       <div className="sm:hidden absolute -left-4 w-3 h-3 bg-blue-500 rounded-full border-2 border-white top-5 shadow-sm"></div>
-                                      <div className="font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors uppercase">{lead.fullName}</div>
-                                      <div className="text-sm text-gray-600 mb-2 font-medium">{lead.phone}</div>
-                                      <div className="flex flex-wrap gap-2">
-                                         <span className="text-xs px-2 py-1 bg-gray-100 rounded-md text-gray-600 border border-gray-200">{lead.branch}</span>
-                                         <span className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded-md border border-green-100">{lead.finalStatus || 'Đang xử lý'}</span>
+                                      
+                                      <div className="flex justify-between items-start mb-2">
+                                          <div className="font-bold text-gray-900 text-base group-hover:text-blue-600 transition-colors uppercase line-clamp-1">{lead.fullName || 'CSKH Mới'}</div>
+                                          <span className={`shrink-0 text-xs px-2 py-1 rounded-md border font-medium ${lead.finalStatus?.includes('Đã chốt') ? 'bg-green-50 text-green-700 border-green-200' : lead.finalStatus?.includes('Không') || lead.finalStatus?.includes('Sai số') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                                             {lead.finalStatus || 'Đang xử lý'}
+                                          </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3 font-medium">
+                                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                          {lead.phone || 'N/A'}
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-2">
+                                         <span className="text-xs px-2 py-1 bg-gray-50 rounded-md text-gray-600 border border-gray-100 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                            {lead.branch || 'Chưa phân nhánh'}
+                                         </span>
                                       </div>
                                   </div>
                                </div>
