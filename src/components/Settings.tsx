@@ -171,6 +171,7 @@ export default function Settings() {
           <TabsTrigger value="users" className="rounded-lg w-full">Người dùng</TabsTrigger>
           <TabsTrigger value="branch_roles" className="rounded-lg w-full">Chi nhánh</TabsTrigger>
           <TabsTrigger value="fields" className="rounded-lg w-full">Cột (Schema)</TabsTrigger>
+          <TabsTrigger value="webhook" className="rounded-lg w-full">API & Webhook</TabsTrigger>
           <TabsTrigger value="audit" className="rounded-lg w-full">Kho Lưu Vết (Audit)</TabsTrigger>
         </TabsList>
         
@@ -477,6 +478,44 @@ export default function Settings() {
             </CardContent>
            </Card>
         </TabsContent>
+        <TabsContent value="webhook" className="space-y-6 outline-none">
+           <Card className="shadow-sm border-gray-200">
+             <CardHeader className="bg-gray-50/50 border-b border-gray-100/50 rounded-t-xl px-6 py-5">
+               <CardTitle className="text-lg font-semibold text-gray-900">API & Webhook (Kết nối Form MKT)</CardTitle>
+               <CardDescription className="text-gray-600 mt-2 text-sm leading-relaxed">
+                  Trang bị sẵn API Endpoint để nhận dữ liệu Lead tự động (từ Facebook Lead Form, Landing Page, Tiktok, v.v.) qua các nền tảng trung gian như Make/Zapier.
+               </CardDescription>
+             </CardHeader>
+             <CardContent className="p-6 space-y-4 text-sm text-gray-700">
+                <div className="bg-blue-50 p-4 border border-blue-100 rounded-lg text-blue-800">
+                   <strong>Webhook URL:</strong> Đây chính là URL Google Apps Script của bạn: 
+                   <div className="mt-2 flex items-center gap-2">
+                       <code className="bg-white px-2 py-1 rounded border border-blue-200 font-mono text-xs break-all flex-1 select-all">{gasUrl || "Vui lòng cấu hình URL trong tab Thiết lập"}</code>
+                   </div>
+                </div>
+                <h3 className="font-semibold text-gray-900 text-base mt-2">Cấu hình trên Make / Zapier:</h3>
+                <ol className="list-decimal pl-5 space-y-2">
+                   <li><strong>Phương thức (Method):</strong> <code className="bg-gray-100 px-1.5 py-0.5 rounded text-red-600 font-semibold">POST</code></li>
+                   <li><strong>Content-Type:</strong> <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-800">application/json</code> (Bắt buộc. Webhook sẽ đọc chuỗi JSON từ payload)</li>
+                   <li><strong>Payload mẫu (JSON):</strong> Hệ thống yêu cầu trường <code className="bg-gray-100 px-1.5 py-0.5 rounded">action: "CREATE"</code> và object <code className="bg-gray-100 px-1.5 py-0.5 rounded">data</code> chứa các thông tin cột trong Schema.</li>
+                </ol>
+                <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto text-gray-300 font-mono text-xs">
+                   <pre>{`{
+  "action": "CREATE",
+  "userAction": "webhook",
+  "data": {
+    "Họ và tên": "Nguyễn Văn Demo",
+    "Số điện thoại": "0987654321",
+    "Chi nhánh": "Sen Thái Thịnh",
+    "Nguồn": "Facebook Page",
+    "Ngày": "22/10/2024"
+  }
+}`}</pre>
+                </div>
+                <p className="mt-4 italic text-gray-500">Lưu ý: Các trường trong "data" phải khớp hoàn toàn với các trường Schema đang cấu hình ở tab "Cột (Schema)". Logic Auto chia số (Round Robin) sẽ được xử lý từ Make/Zapier đẩy vào tên nhân sự tương ứng ở trường "Người phụ trách (Sale)".</p>
+             </CardContent>
+           </Card>
+        </TabsContent>
         <TabsContent value="audit" className="space-y-6 outline-none">
            <Card className="shadow-sm border-gray-200">
             <CardHeader className="px-6 py-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -779,6 +818,29 @@ function doPost(e) {
        }
        SpreadsheetApp.flush();
        return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === 'IMPORT_LEADS') {
+       const rowsToApppend = [];
+       for (const leadData of payload) {
+           const newRow = headers.map(h => {
+              const key = h.toString().trim();
+              let val = leadData[key] !== undefined ? leadData[key] : "";
+              if (!val && (key.toLowerCase() === 'id' || key.toLowerCase() === 'mã khách hàng')) {
+                 val = Utilities.getUuid().split('-')[0].toUpperCase();
+              }
+              if (!val && (key.toLowerCase() === 'ngày ' || key.toLowerCase() === 'ngày' || key.toLowerCase() === 'ngày nhận data')) {
+                 val = Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy");
+              }
+              return val;
+           });
+           rowsToApppend.push(newRow);
+       }
+       if (rowsToApppend.length > 0) {
+           sheet.getRange(sheet.getLastRow() + 1, 1, rowsToApppend.length, headers.length).setValues(rowsToApppend);
+           SpreadsheetApp.flush();
+       }
+       return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "IMPORT_LEADS", count: rowsToApppend.length })).setMimeType(ContentService.MimeType.JSON);
     }
 
     if (action === 'CREATE') {

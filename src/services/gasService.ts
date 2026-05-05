@@ -154,6 +154,10 @@ export const gasService = {
       return true;
     }
     
+    // Auto generate ID if missing
+    if (!lead.id) lead.id = `L-${Date.now().toString().slice(-6)}`;
+    if (!lead.date) lead.date = new Date().toLocaleDateString('en-GB');
+
     const payload = mapLeadToSheetRow(lead);
     try {
       const response = await fetch(url, {
@@ -167,6 +171,31 @@ export const gasService = {
       return json.status === 'success';
     } catch (error) {
       console.error("Failed to create lead:", error);
+      return false;
+    }
+  },
+
+  async importLeads(leads: Partial<Lead>[]): Promise<boolean> {
+    const url = getGasUrl();
+    if (!url) return false;
+
+    const payloadBatch = leads.map(lead => {
+        if (!lead.id) lead.id = `L-${Math.random().toString().slice(2, 8)}`;
+        if (!lead.date) lead.date = new Date().toLocaleDateString('en-GB');
+        return mapLeadToSheetRow(lead);
+    });
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+           'Content-Type': 'text/plain', // text/plain to avoid CORS
+        },
+        body: JSON.stringify({ action: 'IMPORT_LEADS', data: payloadBatch })
+      });
+      const json = await response.json();
+      return json.status === 'success';
+    } catch (error) {
       return false;
     }
   },

@@ -78,6 +78,43 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
      }));
   }, [leads]);
 
+  const sourceRevenueData = useMemo(() => {
+     const counts: Record<string, { total: number, revenue: number }> = {};
+     leads.forEach(lead => {
+        const source = lead.source || 'Khác';
+        if (!counts[source]) counts[source] = { total: 0, revenue: 0 };
+        counts[source].total += 1;
+        if (lead.finalStatus === 'Đã chốt' && lead.totalAmount) {
+           const rev = parseFloat(String(lead.totalAmount).replace(/[^0-9]/g, '')) || 0;
+           counts[source].revenue += rev;
+        }
+     });
+     return Object.keys(counts).map(key => ({
+        name: key,
+        'Data': counts[key].total,
+        'Doanh Thu (Tr)': counts[key].revenue / 1000000,
+        'DoanhThu/Data (Tr)': counts[key].total > 0 ? (counts[key].revenue / 1000000) / counts[key].total : 0
+     })).sort((a,b) => b['Doanh Thu (Tr)'] - a['Doanh Thu (Tr)']).slice(0, 5);
+  }, [leads]);
+
+  const staffPerformanceData = useMemo(() => {
+     const counts: Record<string, { total: number, closed: number }> = {};
+     leads.forEach(lead => {
+        const staff = lead.cskhStaff || 'Chưa chia';
+        if (!counts[staff]) counts[staff] = { total: 0, closed: 0 };
+        counts[staff].total += 1;
+        if (lead.finalStatus === 'Đã chốt') {
+           counts[staff].closed += 1;
+        }
+     });
+     return Object.keys(counts).map(key => ({
+        name: key,
+        'Tổng Lead': counts[key].total,
+        'Đã chốt': counts[key].closed,
+        'Tỷ lệ chốt (%)': counts[key].total > 0 ? Math.round((counts[key].closed / counts[key].total) * 100) : 0
+     })).sort((a,b) => b['Tỷ lệ chốt (%)'] - a['Tỷ lệ chốt (%)']).slice(0, 5);
+  }, [leads]);
+
   if (leads.length === 0) return null;
 
   return (
@@ -95,34 +132,50 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
               <XAxis type="number" />
               <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
               <Tooltip cursor={{fill: 'transparent'}} />
-              <Bar dataKey="count" fill="#111827" radius={[0, 4, 4, 0]} name="Số lượng" />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]} name="Số lượng">
+                {sourceData.slice(0, 7).map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'][index % 7]} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-        <h3 className="text-sm font-medium text-gray-500 mb-4">Trạng thái Khách hàng</h3>
-        <div className="h-64 w-full flex items-center justify-center">
+        <h3 className="text-sm font-medium text-gray-500 mb-4">Doanh thu theo Nguồn (Triệu VNĐ)</h3>
+        <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={statusData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-              >
-                {statusData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getStatusColor(entry.name, index)} />
+            <BarChart data={sourceRevenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} tickMargin={10} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(value: any, name: string) => [Number(value).toFixed(1), name]} />
+              <Bar dataKey="Doanh Thu (Tr)" radius={[4, 4, 0, 0]}>
+                {sourceRevenueData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
                 ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+        <h3 className="text-sm font-medium text-gray-500 mb-4">Hiệu suất Sale (Tỷ lệ chốt %) - Top 5</h3>
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={staffPerformanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} tickMargin={10} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(value: any, name: string) => [name === 'Tỷ lệ chốt (%)' ? `${value}%` : value, name]} />
+              <Bar dataKey="Tỷ lệ chốt (%)" radius={[4, 4, 0, 0]}>
+                {staffPerformanceData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={['#3b82f6', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6'][index % 5]} />
+                ))}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

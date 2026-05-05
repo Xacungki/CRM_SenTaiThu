@@ -95,6 +95,7 @@ export default function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
   const [schemaHeaders, setSchemaHeaders] = useState<string[]>([]);
+  const [branchRoles, setBranchRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<any>(null);
   const [cardFilter, setCardFilter] = useState<'all' | 'closed'>('all');
@@ -200,9 +201,13 @@ export default function App() {
     setLoading(true);
     toast.loading('Đang đồng bộ dữ liệu từ Google Sheets...', { id: 'sync-leads' });
     try {
-      const data = await gasService.getLeads();
+      const [data, fetchedBranchRoles] = await Promise.all([
+         gasService.getLeads(),
+         gasService.getBranchRoles()
+      ]);
       setAllLeads(data.leads);
       setSchemaHeaders(data.schema);
+      setBranchRoles(fetchedBranchRoles);
       toast.success(`Đã cập nhật ${data.leads.length} bản ghi thành công.`, { id: 'sync-leads' });
     } catch (error) {
       toast.error('Lỗi khi tải dữ liệu từ Google Sheets.', { id: 'sync-leads' });
@@ -259,6 +264,77 @@ export default function App() {
       headerActions={currentRoute === 'dashboard' ? (
         <div className="flex items-center gap-2">
            <FilterBar onFilterChange={setFilters} />
+           {currentUser.role !== 'sale' && (
+             <>
+               <input 
+                  type="file" 
+                  accept=".csv" 
+                  id="csv-upload" 
+                  className="hidden" 
+                  onChange={async (e) => {
+                     const file = e.target.files?.[0];
+                     if (!file) return;
+                     const reader = new FileReader();
+                     reader.onload = async (event) => {
+                        const text = event.target?.result as string;
+                        const lines = text.split('\n').filter(l => l.trim().length > 0);
+                        if(lines.length < 2) return toast.error("File CSV không hợp lệ hoặc không có dữ liệu.");
+                        const headers = lines[0].split(',').map(h => h.trim());
+                        const newLeads = [];
+                        let duplicateCount = 0;
+                        for (let i = 1; i < lines.length; i++) {
+                           // Basic CSV row parsing
+                           const rowMatches = lines[i].match(/(?!\s*$)\s*(?:'([^'\\]*(?:\\[\s\S][^'\\]*)*)'|"([^"\\]*(?:\\[\s\S][^"\\]*)*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g);
+                           if (!rowMatches) continue;
+                           const values = rowMatches.map(v => v.replace(/,$/, '').replace(/^["']|["']$/g, '').trim());
+                           
+                           const leadData: any = {};
+                           headers.forEach((h, idx) => {
+                              if (values[idx]) leadData[h] = values[idx];
+                           });
+                           
+                           const formattedLead: Partial<Lead> = { ...leadData };
+                           formattedLead.fullName = leadData['Họ và tên'] || leadData['fullName'] || leadData['name'] || '';
+                           formattedLead.phone = leadData['Số điện thoại'] || leadData['phone'] || leadData['SĐT'] || '';
+                           
+                           if (!formattedLead.phone) continue;
+
+                           // Duplicate check
+                           const isDuplicate = allLeads.some(l => l.phone === formattedLead.phone);
+                           if (isDuplicate) {
+                              duplicateCount++;
+                              continue;
+                           }
+                           newLeads.push(formattedLead);
+                        }
+
+                        if (duplicateCount > 0) {
+                           toast.warning(`Đã bỏ qua ${duplicateCount} số điện thoại trùng lặp.`);
+                        }
+
+                        if (newLeads.length > 0) {
+                           toast.loading(`Đang nạp ${newLeads.length} leads...`, {id: 'import-csv'});
+                           const success = await gasService.importLeads(newLeads);
+                           if (success) {
+                              toast.success(`Nhập thành công ${newLeads.length} leads!`, {id: 'import-csv'});
+                              setRefreshTrigger(prev => prev + 1);
+                           } else {
+                              toast.error(`Nhập dữ liệu thất bại. Vui lòng thử lại.`, {id: 'import-csv'});
+                           }
+                        } else {
+                           toast.info('Không có dữ liệu mới nào được nhập vào.');
+                        }
+                     };
+                     reader.readAsText(file);
+                     e.target.value = '';
+                  }}
+               />
+               <label htmlFor="csv-upload" className="px-3 py-2 flex items-center gap-2 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 shadow-sm text-sm cursor-pointer" title="Nhập dữ liệu CSV">
+                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                 <span className="hidden sm:inline">Nhập file</span>
+               </label>
+             </>
+           )}
            <button 
              onClick={() => exportToCSV(filteredLeads, 'SenTaiThu_Data.csv')}
              className="px-3 py-2 flex items-center gap-2 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 shadow-sm text-sm"
@@ -327,6 +403,52 @@ export default function App() {
               setIsFormOpen(true);
            }}
            currentUser={currentUser}
+           branchRoles={branchRoles}
+           onUpdateLeadStatus={async (lead, newGroup) => {
+               // Basic mapping: 
+               // 'Đã chốt' -> finalStatus = 'Đã chốt'
+               // 'Hủy / Không nghe' -> finalStatus = 'Không nghe máy'
+               // 'Hẹn gọi lại' -> append Hẹn gọi lại to care
+               // 'Đang chăm sóc' -> append Dang cham soc
+               // 'Chưa xử lý' -> clear
+               const updatedLead = { ...lead };
+               if (newGroup === 'Đã chốt') {
+                  updatedLead.finalStatus = 'Đã chốt';
+               } else if (newGroup === 'Hủy / Không nghe') {
+                  updatedLead.finalStatus = 'Không nghe máy';
+               } else if (newGroup === 'Hẹn gọi lại') {
+                  updatedLead.finalStatus = '';
+                  // update latest care to Hẹn gọi lại if care1 missing
+                  if (!updatedLead.care1) updatedLead.care1 = 'Hẹn gọi lại';
+                  else {
+                     let set = false;
+                     for (let i = 7; i >= 1; i--) {
+                        if (updatedLead[`care${i}` as keyof Lead]) {
+                           if (i < 7) updatedLead[`care${i+1}` as keyof Lead] = 'Hẹn gọi lại' as any;
+                           else updatedLead[`care7` as keyof Lead] = 'Hẹn gọi lại' as any;
+                           set = true;
+                           break;
+                        }
+                     }
+                     if (!set) updatedLead.care1 = 'Hẹn gọi lại';
+                  }
+               } else if (newGroup === 'Đang chăm sóc') {
+                  updatedLead.finalStatus = '';
+                  if (!updatedLead.care1) updatedLead.care1 = 'Nghe máy - Xin Zalo';
+               } else if (newGroup === 'Chưa xử lý') {
+                  updatedLead.finalStatus = '';
+                  updatedLead.care1 = '';
+               }
+               
+               toast.loading('Đang cập nhật trạng thái...', {id: 'update-kanban'});
+               const success = await gasService.updateLead(updatedLead);
+               if (success) {
+                  toast.success('Chuyển trạng thái thành công!', {id: 'update-kanban'});
+                  setRefreshTrigger(p => p + 1);
+               } else {
+                  toast.error('Lỗi khi chuyển trạng thái', {id: 'update-kanban'});
+               }
+           }}
         />
       )}
 
@@ -337,6 +459,8 @@ export default function App() {
         lead={editingLead}
         currentUser={currentUser}
         schema={schemaHeaders}
+        allLeads={allLeads}
+        branchRoles={branchRoles}
       />
     </Layout>
     <Toaster />

@@ -122,7 +122,7 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
         </header>
 
         <div className="flex-1 overflow-auto p-4 md:p-8">
-          <div className="max-w-7xl mx-auto h-full">
+          <div className={`${currentRoute === 'advanced' ? 'w-full' : 'max-w-7xl mx-auto'} h-full flex flex-col`}>
             {children}
           </div>
         </div>

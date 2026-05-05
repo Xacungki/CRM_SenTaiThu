@@ -11,9 +11,11 @@ interface LeadFormModalProps {
   lead?: Lead | null;
   currentUser: CRMUser;
   schema?: string[];
+  allLeads?: Lead[];
+  branchRoles?: any[];
 }
 
-export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUser, schema }: LeadFormModalProps) {
+export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUser, schema, allLeads = [], branchRoles = [] }: LeadFormModalProps) {
   const [formData, setFormData] = useState<Partial<Lead>>({});
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'care' | 'billing' | 'advanced'>('info');
@@ -72,10 +74,16 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
          if (!isNaN(Number(num))) {
             const timeField = `time${num}`;
             if (value) {
-               // Update time to current
+               // Update time to current nicely formatted
                const now = new Date();
-               // format as DD/MM/YYYY HH:mm:ss
-               newData[timeField] = now.toLocaleString('en-GB');
+               // format as DD/MM/YYYY HH:mm:ss for consistency
+               const dd = String(now.getDate()).padStart(2, '0');
+               const mm = String(now.getMonth() + 1).padStart(2, '0');
+               const yyyy = now.getFullYear();
+               const hh = String(now.getHours()).padStart(2, '0');
+               const mins = String(now.getMinutes()).padStart(2, '0');
+               const ss = String(now.getSeconds()).padStart(2, '0');
+               newData[timeField] = `${dd}/${mm}/${yyyy} ${hh}:${mins}:${ss}`;
             } else {
                newData[timeField] = '';
             }
@@ -129,10 +137,8 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
         toast.success("Đã cập nhật dữ liệu thành công.", { id: 'save-lead' });
       } else {
         // Prevent duplicate phone number check
-        const response = await gasService.getLeads();
-        const allCurrentLeads = response.leads;
         if (formData.phone) {
-           const isDuplicate = allCurrentLeads.some(l => l.phone === formData.phone && l.id !== lead?.id);
+           const isDuplicate = allLeads.some(l => l.phone === formData.phone && l.id !== lead?.id);
            if (isDuplicate) {
               const confirmProceed = window.confirm("Cảnh báo: Số điện thoại này đã tồn tại trong hệ thống. Bạn có chắc chắn muốn tạo thêm khách hàng này không?");
               if (!confirmProceed) {
@@ -237,10 +243,16 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
                       <label className="block text-sm font-medium text-gray-700 mb-1">Chi nhánh</label>
                       <select disabled={isMktDisabled} name="branch" value={formData.branch || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500">
                         <option value="">-- Chọn chi nhánh --</option>
-                        <option value="Sen Thái Thịnh">Sen Thái Thịnh</option>
-                        <option value="Sen Đại Mỗ">Sen Đại Mỗ</option>
-                        <option value="Sen Long Biên">Sen Long Biên</option>
-                        <option value="Sen Vinh">Sen Vinh</option>
+                        {branchRoles && branchRoles.length > 0 ? (
+                           branchRoles.map(r => <option key={r.branch} value={r.branch}>{r.branch}</option>)
+                        ) : (
+                           <>
+                             <option value="Sen Thái Thịnh">Sen Thái Thịnh</option>
+                             <option value="Sen Đại Mỗ">Sen Đại Mỗ</option>
+                             <option value="Sen Long Biên">Sen Long Biên</option>
+                             <option value="Sen Vinh">Sen Vinh</option>
+                           </>
+                        )}
                       </select>
                     </div>
                     <div>
@@ -305,13 +317,27 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
                     const timeVal = formData[`time${num}` as keyof Lead] as string;
                     if (careVal === undefined && timeVal === undefined) return null; // hide if never initialized
                     
+                    const isFilled = !!careVal;
+                    let bgColor = 'bg-white border-gray-200';
+                    let selectBgColor = 'bg-gray-50';
+                    if (isFilled) {
+                       if (num === 1) bgColor = 'bg-blue-50 border-blue-200';
+                       if (num === 2) bgColor = 'bg-green-50 border-green-200';
+                       if (num === 3) bgColor = 'bg-purple-50 border-purple-200';
+                       if (num === 4) bgColor = 'bg-orange-50 border-orange-200';
+                       if (num === 5) bgColor = 'bg-pink-50 border-pink-200';
+                       if (num === 6) bgColor = 'bg-teal-50 border-teal-200';
+                       if (num === 7) bgColor = 'bg-indigo-50 border-indigo-200';
+                       selectBgColor = 'bg-white/60';
+                    }
+
                     return (
                       <div key={num} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-white bg-gray-900 text-white font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10 mx-auto">
+                        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 border-white ${isFilled ? 'bg-gray-900 text-white' : 'bg-gray-300 text-gray-700'} font-bold shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10 mx-auto transition-colors`}>
                           L{num}
                         </div>
                         
-                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border shadow-sm transition-colors ${bgColor}`}>
                           <div className="flex justify-between items-center mb-2">
                              <span className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" /> {timeVal || 'Chưa rõ'}</span>
                           </div>
@@ -321,7 +347,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
                               name={`care${num}`} 
                               value={careVal || ''} 
                               onChange={handleChange}
-                              className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded outline-none focus:border-gray-900 bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                              className={`w-full px-2 py-1.5 text-sm border border-gray-200 rounded outline-none focus:border-gray-900 disabled:opacity-70 disabled:cursor-not-allowed ${selectBgColor}`}
                             >
                               <option value="">Trống</option>
                               <option value="Không nghe máy">Không nghe máy</option>
