@@ -498,18 +498,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
           </form>
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center z-10 w-full">
-          <div>
-            {lead && currentUser.role === 'admin' && onDelete && (
-               <button type="button" onClick={() => {
-                  if (window.confirm("Bạn có chắc chắn muốn xóa khách hàng này không? Dữ liệu sẽ không thể khôi phục.")) {
-                      onDelete(lead as Lead);
-                  }
-               }} className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
-                 Xóa Khách Hàng
-               </button>
-            )}
-          </div>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end items-center z-10 w-full">
           <div className="flex gap-3">
              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                Hủy
