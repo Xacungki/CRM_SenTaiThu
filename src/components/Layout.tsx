@@ -76,9 +76,9 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
           {(currentUser.role === 'admin' || currentUser.role === 'mkt') && (
             <button 
               onClick={() => { onAddNew?.(); setSidebarOpen(false); }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium"
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-xl transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium"
             >
-              <UserPlus className="w-5 h-5" />
+              <UserPlus className="w-5 h-5 flex-shrink-0" />
               <span>Thêm Lead mới</span>
             </button>
           )}
@@ -158,13 +158,13 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-medium ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-xl transition-all font-medium ${
         active 
           ? 'bg-gray-900 text-white shadow-md' 
           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
       }`}
     >
-      {icon}
+      <div className="flex-shrink-0">{icon}</div>
       <span>{label}</span>
     </button>
   );

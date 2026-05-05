@@ -55,7 +55,16 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
 
   // Auto-calculate total amount
   useEffect(() => {
-    if (formData.finalStatus === 'Đã chốt' && formData.customerCount && formData.unitPrice) {
+    let currentLastStatus = '';
+    for (let i = 7; i >= 1; i--) {
+        const careValue = (formData as any)[`care${i}`];
+        if (careValue && careValue !== 'Trống' && careValue !== '') {
+            currentLastStatus = careValue;
+            break;
+        }
+    }
+    
+    if (currentLastStatus?.includes('Đã chốt') && formData.customerCount && formData.unitPrice) {
       const count = parseInt(String(formData.customerCount).replace(/\D/g, ''), 10) || 0;
       const price = parseInt(String(formData.unitPrice).replace(/\D/g, ''), 10) || 0;
       if (count > 0 && price > 0) {
@@ -66,7 +75,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
         }
       }
     }
-  }, [formData.customerCount, formData.unitPrice, formData.finalStatus]);
+  }, [formData.customerCount, formData.unitPrice, formData.care1, formData.care2, formData.care3, formData.care4, formData.care5, formData.care6, formData.care7]);
 
   useEffect(() => {
     // auto calculate lastCareStatus on the fly
@@ -200,8 +209,8 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     }
   };
 
-  const isMktDisabled = currentUser.role === 'sale';
-  const isCskhDisabled = currentUser.role === 'mkt';
+  const isMktDisabled = false; // Phân quyền: mọi account đều có thể Sửa/Cập nhật/Thêm
+  const isCskhDisabled = false; // Phân quyền: mọi account đều có thể Sửa/Cập nhật/Thêm
 
   const activeTabClass = "py-3 px-4 text-sm font-medium border-b-2 transition-colors border-gray-900 text-gray-900";
   const inactiveTabClass = "py-3 px-4 text-sm font-medium border-b-2 transition-colors border-transparent text-gray-500 hover:text-gray-700";
@@ -274,17 +283,10 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                       <label className="block text-sm font-medium text-gray-700 mb-1">Chi nhánh</label>
                       <select disabled={isMktDisabled} name="branch" value={formData.branch || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500">
                         <option value="">-- Chọn chi nhánh --</option>
-                        {dropdowns['Chi nhánh'] && dropdowns['Chi nhánh'].filter(b => b.trim()).length > 0 ? (
-                           dropdowns['Chi nhánh'].filter(b => b.trim()).map(opt => <option key={opt} value={opt}>{opt}</option>)
-                        ) : branchRoles && branchRoles.filter(r => r.branch?.trim()).length > 0 ? (
+                        {branchRoles && branchRoles.filter(r => r.branch?.trim()).length > 0 ? (
                            branchRoles.filter(r => r.branch?.trim()).map(r => <option key={r.branch} value={r.branch}>{r.branch}</option>)
                         ) : (
-                           <>
-                             <option value="Sen Thái Thịnh">Sen Thái Thịnh</option>
-                             <option value="Sen Đại Mỗ">Sen Đại Mỗ</option>
-                             <option value="Sen Long Biên">Sen Long Biên</option>
-                             <option value="Sen Vinh">Sen Vinh</option>
-                           </>
+                           <option value="" disabled>Đang tải dữ liệu chi nhánh...</option>
                         )}
                       </select>
                     </div>
@@ -471,45 +473,62 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                       <CheckCircle className="w-5 h-5" /> Trạng thái cuối cùng
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Tình trạng chốt</label>
-                          <select disabled={isCskhDisabled} name="finalStatus" value={formData.finalStatus || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 bg-white font-medium text-gray-900 border-green-200 focus:border-green-500 disabled:bg-gray-100 disabled:text-gray-500">
-                            <option value="">-- Đang chăm sóc --</option>
-                            {dropdowns['Tình trạng chốt'] && dropdowns['Tình trạng chốt'].length > 0 ? (
-                               dropdowns['Tình trạng chốt'].map(opt => <option key={opt} value={opt}>{opt}</option>)
-                            ) : (
-                               <>
-                                 <option value="Đã chốt">Đã chốt (Thành công)</option>
-                                 <option value="Không nghe máy">Không nghe máy / Hủy</option>
-                                 <option value="Khách xa">Khách xa (Hủy)</option>
-                                 <option value="Sai số">Sai số</option>
-                               </>
-                            )}
-                          </select>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Kết quả chăm sóc</label>
+                          <input 
+                            disabled={true} 
+                            value={(() => {
+                              let lastStatus = '';
+                              for (let i = 7; i >= 1; i--) {
+                                  const careValue = (formData as any)[`care${i}`];
+                                  if (careValue && careValue !== 'Trống') {
+                                      lastStatus = careValue;
+                                      break;
+                                  }
+                              }
+                              return lastStatus || 'Chưa chăm sóc';
+                            })()} 
+                            type="text" 
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-gray-100 text-gray-700 font-medium cursor-not-allowed" 
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Cập nhật qua các lần chăm sóc (Tab Lịch sử)</p>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Ngày chốt (Lần cuối CSKH)</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian chốt (Lần cuối CSKH)</label>
                           <input disabled={true} title="Hệ thống tự động cập nhật khi lưu" name="lastCareStatus" value={formData.lastCareStatus || ''} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-gray-100 text-gray-500 cursor-not-allowed" placeholder="Tự động cập nhật" />
                         </div>
                     </div>
                  </div>
 
-                 {formData.finalStatus === 'Đã chốt' && (
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng khách</label>
-                        <input disabled={isCskhDisabled} name="customerCount" value={formData.customerCount || ''} onChange={handleChange} type="number" min="1" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 disabled:bg-gray-100 disabled:text-gray-500" placeholder="1" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Đơn giá (VNĐ)</label>
-                        <input disabled={isCskhDisabled} name="unitPrice" value={formData.unitPrice || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 disabled:bg-gray-100 disabled:text-gray-500" placeholder="1000000" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Thành tiền (VNĐ)</label>
-                        <input disabled={isCskhDisabled} name="totalAmount" value={formData.totalAmount || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-gray-50 font-bold text-gray-900 disabled:text-gray-500" placeholder="Tổng tiền..." />
-                      </div>
-                   </div>
-                 )}
+                 {(() => {
+                    let lastStatus = '';
+                    for (let i = 7; i >= 1; i--) {
+                        const careValue = (formData as any)[`care${i}`];
+                        if (careValue && careValue !== 'Trống') {
+                            lastStatus = careValue;
+                            break;
+                        }
+                    }
+                    if (lastStatus?.includes('Đã chốt') || formData.customerCount || formData.unitPrice || formData.totalAmount) {
+                      return (
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng khách</label>
+                            <input disabled={isCskhDisabled} name="customerCount" value={formData.customerCount || ''} onChange={handleChange} type="number" min="1" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 disabled:bg-gray-100 disabled:text-gray-500" placeholder="1" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Đơn giá (VNĐ)</label>
+                            <input disabled={isCskhDisabled} name="unitPrice" value={formData.unitPrice || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 disabled:bg-gray-100 disabled:text-gray-500" placeholder="250000" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Thành tiền (VNĐ)</label>
+                            <input disabled={isCskhDisabled} name="totalAmount" value={formData.totalAmount || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-gray-50 font-bold text-gray-900 disabled:text-gray-500" placeholder="Tổng tiền..." />
+                          </div>
+                       </div>
+                      );
+                    }
+                    return null;
+                 })()}
               </div>
             )}
 
@@ -540,7 +559,22 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
           </form>
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end items-center z-10 w-full">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center z-10 w-full">
+          <div>
+            {lead && currentUser.role === 'admin' && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (window.confirm('Bạn có chắc chắn muốn xóa khách hàng này không? Hành động này không thể hoàn tác.')) {
+                    onDelete?.(lead as Lead);
+                  }
+                }} 
+                className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
+              >
+                Xóa khách hàng
+              </button>
+            )}
+          </div>
           <div className="flex gap-3">
              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                Hủy

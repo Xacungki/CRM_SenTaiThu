@@ -51,8 +51,7 @@ const KEY_MAPPING = {
   care7: 'Chăm sóc lần 7',
   time7: 'Thời gian csl7',
   lastCareStatus: 'Lần chăm sóc cuối cùng',
-  finalStatus: 'Tình trạng chốt',
-  customerCount: 'Số lượng khách',
+  customerCount: 'Số lượng',
   unitPrice: 'Đơn giá',
   totalAmount: 'Thành tiền',
   cskhNote: 'Nội dung CSKH',
@@ -383,8 +382,7 @@ function mapSheetRowToLead(row: any): Lead {
     care7: row['Chăm sóc lần 7'] || '',
     time7: formatPossibleDate(row['Thời gian csl7']) || '',
     lastCareStatus: formatPossibleDate(row['Lần chăm sóc cuối cùng']) || '',
-    finalStatus: row['Tình trạng chốt'] || '',
-    customerCount: row['Số lượng khách'] || '',
+    customerCount: row['Số lượng'] || '',
     unitPrice: row['Đơn giá'] || '',
     totalAmount: row['Thành tiền'] || '',
     cskhNote: row['Nội dung CSKH'] || '',
@@ -421,8 +419,7 @@ function mapLeadToSheetRow(lead: Partial<Lead>): any {
     'Chăm sóc lần 7': lead.care7,
     'Thời gian csl7': lead.time7,
     'Lần chăm sóc cuối cùng': lead.lastCareStatus,
-    'Tình trạng chốt': lead.finalStatus,
-    'Số lượng khách': lead.customerCount,
+    'Số lượng': lead.customerCount,
     'Đơn giá': lead.unitPrice,
     'Thành tiền': lead.totalAmount,
     'Nội dung CSKH': lead.cskhNote,
@@ -457,7 +454,7 @@ function getMockLeads(): Lead[] {
       care6: '', time6: '',
       care7: 'Đã chốt', time7: '04/05/2026 17:13:12',
       lastCareStatus: '04/05/2026 17:13:12',
-      finalStatus: '',
+      
       customerCount: '', unitPrice: '', totalAmount: ''
     },
     {
@@ -474,7 +471,7 @@ function getMockLeads(): Lead[] {
       care6: '', time6: '',
       care7: '', time7: '',
       lastCareStatus: '04/05/2026 17:20:11',
-      finalStatus: 'Khách xa',
+      
       customerCount: '', unitPrice: '', totalAmount: ''
     }
   ];

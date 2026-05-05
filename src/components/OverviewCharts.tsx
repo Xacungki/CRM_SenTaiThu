@@ -1,5 +1,14 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Lead } from '../types';
+
+const getLastStatus = (lead: Lead) => {
+  for (let i = 7; i >= 1; i--) {
+    const careVal = (lead as any)[`care${i}`];
+    if (careVal && careVal !== 'Trống') return careVal;
+  }
+  return '';
+};
+
 import { useMemo } from 'react';
 
 const COLORS = ['#111827', '#4b5563', '#9ca3af', '#d1d5db', '#e5e7eb', '#f3f4f6'];
@@ -24,7 +33,7 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
 
   const statusData = useMemo(() => {
     const counts = leads.reduce((acc, lead) => {
-      const status = lead.finalStatus || 'Đang chăm sóc';
+      const status = getLastStatus(lead) || 'Đang chăm sóc';
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -34,7 +43,7 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
   const revenueTrendData = useMemo(() => {
     const grouped: Record<string, number> = {};
     leads.forEach(lead => {
-       if (lead.finalStatus === 'Đã chốt' && lead.totalAmount) {
+       if (getLastStatus(lead).includes('Đã chốt') && lead.totalAmount) {
           const rev = parseFloat(String(lead.totalAmount).replace(/[^0-9]/g, '')) || 0;
           if (lead.date) {
              let period = '';
@@ -66,7 +75,7 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
         if (lead.branch) {
            if (!counts[lead.branch]) counts[lead.branch] = { total: 0, closed: 0 };
            counts[lead.branch].total += 1;
-           if (lead.finalStatus === 'Đã chốt') {
+           if (getLastStatus(lead).includes('Đã chốt')) {
               counts[lead.branch].closed += 1;
            }
         }
@@ -84,7 +93,7 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
         const source = lead.source || 'Khác';
         if (!counts[source]) counts[source] = { total: 0, revenue: 0 };
         counts[source].total += 1;
-        if (lead.finalStatus === 'Đã chốt' && lead.totalAmount) {
+        if (getLastStatus(lead).includes('Đã chốt') && lead.totalAmount) {
            const rev = parseFloat(String(lead.totalAmount).replace(/[^0-9]/g, '')) || 0;
            counts[source].revenue += rev;
         }
@@ -103,7 +112,7 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
         const staff = lead.cskhStaff || 'Chưa chia';
         if (!counts[staff]) counts[staff] = { total: 0, closed: 0 };
         counts[staff].total += 1;
-        if (lead.finalStatus === 'Đã chốt') {
+        if (getLastStatus(lead).includes('Đã chốt')) {
            counts[staff].closed += 1;
         }
      });

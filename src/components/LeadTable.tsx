@@ -93,25 +93,6 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">Danh sách Khách Hàng</h2>
           <p className="text-sm text-gray-500 mt-1">Đang hiển thị {filteredLeads.length} bản ghi theo bộ lọc</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleExport}
-            disabled={filteredLeads.length === 0}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 rounded-lg transition-all shadow-sm disabled:opacity-50"
-            title="Xuất Excel/CSV"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Xuất file</span>
-          </button>
-          <button 
-            onClick={onRefresh}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-all shadow-sm disabled:opacity-50"
-          >
-            <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Đồng bộ
-          </button>
-        </div>
       </div>
 
       <div className="overflow-y-auto overflow-x-hidden flex-1 min-h-[500px] h-full bg-gray-50/30">
@@ -302,17 +283,28 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {lead.finalStatus ? (
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-                        lead.finalStatus.includes('Đã chốt') 
-                          ? 'bg-green-50 text-green-700 border-green-200'
-                          : 'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                        {lead.finalStatus}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400 italic">Đang bám sát</span>
-                    )}
+                    {(() => {
+                        let lastStatus = '';
+                        for (let i = 7; i >= 1; i--) {
+                            let careVal = (lead as any)[`care${i}`];
+                            if (careVal && careVal !== 'Trống') {
+                                lastStatus = careVal;
+                                break;
+                            }
+                        }
+                        if (lastStatus) {
+                          return (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                              lastStatus.includes('Đã chốt') 
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}>
+                              {lastStatus}
+                            </span>
+                          );
+                        }
+                        return <span className="text-xs text-gray-400 italic">Chưa CSKH</span>;
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button 

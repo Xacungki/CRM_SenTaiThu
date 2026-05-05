@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Copy, CheckCircle, ExternalLink, AlertTriangle, Plus, Trash2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -370,7 +370,17 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                            </Select>
                          </TableCell>
                          <TableCell>
-                           <Input value={user.branch} onChange={e => handleUpdateUser(i, 'branch', e.target.value)} className="h-8 shadow-none min-w-[140px]" placeholder="ALL hoặc tên chi nhánh" />
+                           <Select value={user.branch} onValueChange={(val: string) => handleUpdateUser(i, 'branch', val)}>
+                             <SelectTrigger className="h-8 shadow-none min-w-[140px]">
+                               <SelectValue placeholder="Chọn chi nhánh..." />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="ALL">ALL (Tất cả)</SelectItem>
+                               {branchRoles.map(r => r.branch?.trim()).filter(Boolean).map(branch => (
+                                 <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
                          </TableCell>
                          <TableCell>
                            <Select value={user.status} onValueChange={(val: any) => handleUpdateUser(i, 'status', val)}>

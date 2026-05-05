@@ -276,12 +276,25 @@ export default function App() {
 
   // Compute stats
   const totalLeads = filteredLeads.length;
-  const closedLeads = filteredLeads.filter(l => l.finalStatus === 'Đã chốt').length;
+  
+  const getIsClosed = (lead: Lead) => {
+      let isClosed = false;
+      for (let i = 7; i >= 1; i--) {
+          const careVal = (lead as any)[`care${i}`];
+          if (careVal && careVal !== 'Trống') {
+              if (careVal.includes('Đã chốt')) isClosed = true;
+              break;
+          }
+      }
+      return isClosed;
+  };
+  
+  const closedLeads = filteredLeads.filter(getIsClosed).length;
   const conversionRate = totalLeads > 0 ? ((closedLeads / totalLeads) * 100).toFixed(1) : '0';
   
   // Calculate expected revenue (totalAmount)
   const expectedRevenue = filteredLeads.reduce((sum, lead) => {
-    if (lead.finalStatus === 'Đã chốt' && lead.totalAmount) {
+    if (getIsClosed(lead) && lead.totalAmount) {
       const amount = String(lead.totalAmount).replace(/[^\d]/g, '');
       return sum + (parseInt(amount) || 0);
     }
