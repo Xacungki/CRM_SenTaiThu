@@ -3,6 +3,7 @@ import { Lead } from '../types';
 import { Phone, MapPin, Tag, Clock, RefreshCcw, Edit2, ChevronLeft, ChevronRight, Download, Search } from 'lucide-react';
 
 interface LeadTableProps {
+  totalCount?: number;
   leads: Lead[];
   loading: boolean;
   onEditLead?: (lead: Lead) => void;
@@ -10,7 +11,7 @@ interface LeadTableProps {
   onRefresh?: () => void;
 }
 
-export default function LeadTable({ leads, loading, onEditLead, filters, onRefresh }: LeadTableProps) {
+export default function LeadTable({ leads, loading, onEditLead, filters, onRefresh, totalCount }: LeadTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
@@ -327,7 +328,7 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
         <div className="px-4 md:px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50">
           <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start gap-4">
             <span className="text-sm text-gray-500">
-              Hiển thị {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredLeads.length)} <span className="hidden sm:inline">trong {filteredLeads.length} khách hàng</span>
+              Hiển thị {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredLeads.length)} trong <span className="font-medium text-gray-900">{filteredLeads.length}</span> kết quả <span className="hidden sm:inline border-l ml-2 pl-2">Tổng Data: <span className="font-medium text-gray-900">{totalCount || leads.length}</span></span>
             </span>
             <select 
               className="text-sm border-gray-300 rounded-md bg-white border outline-none px-2 py-1"
@@ -337,6 +338,7 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
                 setCurrentPage(1);
               }}
             >
+              <option value="20">20 dòng/trang</option>
               <option value="50">50 dòng/trang</option>
               <option value="100">100 dòng/trang</option>
               <option value="200">200 dòng/trang</option>

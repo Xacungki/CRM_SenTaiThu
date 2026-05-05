@@ -10,6 +10,14 @@ interface AdvancedViewProps {
   onUpdateLeadStatus?: (lead: Lead, newGroup: string) => Promise<void>;
 }
 
+
+const getLastStatus = (lead: any) => {
+  for (let i = 7; i >= 1; i--) {
+    const careVal = lead[`care${i}`];
+    if (careVal && careVal !== 'Trống') return careVal;
+  }
+  return '';
+};
 export default function AdvancedView({ leads, onRowClick, currentUser, branchRoles = [], onUpdateLeadStatus }: AdvancedViewProps) {
   const [viewMode, setViewMode] = useState<'kanban' | 'timeline' | 'list' | 'tree' | 'gantt'>('kanban');
   const [branchFilter, setBranchFilter] = useState('');
@@ -93,13 +101,13 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
      };
 
      allowedLeads.forEach(lead => {
-         if (lead.finalStatus === 'Đã chốt') {
+         if (getLastStatus(lead) === 'Đã chốt') {
             groups['Đã chốt'].push(lead);
-         } else if (lead.finalStatus === 'Không nghe máy' || lead.finalStatus === 'Khách xa' || lead.finalStatus === 'Sai số') {
+         } else if (getLastStatus(lead) === 'Không nghe máy' || getLastStatus(lead) === 'Khách xa' || getLastStatus(lead) === 'Sai số') {
             groups['Hủy / Không nghe'].push(lead);
          } else if (!lead.care1) {
             groups['Chưa xử lý'].push(lead);
-         } else if (lead.care1 && !lead.finalStatus) {
+         } else if (lead.care1 && !getLastStatus(lead)) {
             // Further breakdown could be done, simply put in Đang chăm sóc
             if (lead.care1 === 'Hẹn gọi lại' || lead.care2 === 'Hẹn gọi lại') {
                groups['Hẹn gọi lại'].push(lead);
@@ -326,8 +334,8 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                                       
                                       <div className="flex justify-between items-start mb-2">
                                           <div className="font-bold text-gray-900 text-base group-hover:text-blue-600 transition-colors uppercase line-clamp-1">{lead.fullName || 'CSKH Mới'}</div>
-                                          <span className={`shrink-0 text-xs px-2 py-1 rounded-md border font-medium ${lead.finalStatus?.includes('Đã chốt') ? 'bg-green-50 text-green-700 border-green-200' : lead.finalStatus?.includes('Không') || lead.finalStatus?.includes('Sai số') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                                             {lead.finalStatus || 'Đang xử lý'}
+                                          <span className={`shrink-0 text-xs px-2 py-1 rounded-md border font-medium ${getLastStatus(lead)?.includes('Đã chốt') ? 'bg-green-50 text-green-700 border-green-200' : getLastStatus(lead)?.includes('Không') || getLastStatus(lead)?.includes('Sai số') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                                             {getLastStatus(lead) || 'Đang xử lý'}
                                           </span>
                                       </div>
 
@@ -396,8 +404,8 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                                                <div className="text-xs text-gray-500 mt-1">Nguồn: {lead.source || 'N/A'} | CSKH: {lead.cskhStaff || 'Chưa phân công'}</div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                               <span className={`text-xs px-2 py-1 rounded-md border font-medium ${lead.finalStatus === 'Đã chốt' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                                                  {lead.finalStatus || 'Đang xử lý'}
+                                               <span className={`text-xs px-2 py-1 rounded-md border font-medium ${getLastStatus(lead) === 'Đã chốt' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                  {getLastStatus(lead) || 'Đang xử lý'}
                                                </span>
                                                <button onClick={(e) => { e.preventDefault(); onRowClick(lead); }} className="text-blue-600 hover:text-blue-800 text-sm font-medium underline">
                                                   Chi tiết
@@ -447,7 +455,7 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                           </div>
                        </div>
                        <div className="space-y-6">
-                          {allowedLeads.filter(lead => lead.finalStatus !== 'Đã chốt').sort((a,b) => { let countA = 0; for(let i=1; i<=7; i++) { if(a['care'+i] && a['care'+i] !== 'Trống') countA++; } let countB = 0; for(let i=1; i<=7; i++) { if(b['care'+i] && b['care'+i] !== 'Trống') countB++; } return countB - countA; }).map(lead => {
+                          {allowedLeads.filter(lead => getLastStatus(lead) !== 'Đã chốt').sort((a,b) => { let countA = 0; for(let i=1; i<=7; i++) { if(a['care'+i] && a['care'+i] !== 'Trống') countA++; } let countB = 0; for(let i=1; i<=7; i++) { if(b['care'+i] && b['care'+i] !== 'Trống') countB++; } return countB - countA; }).map(lead => {
                              const cares = [];
                              for(let i=1; i<=7; i++) {
                                 const cInfo = (lead as any)?.[`care${i}`];
@@ -466,8 +474,8 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                                          <div className="text-gray-500 text-xs mt-0.5">{lead.phone}</div>
                                       </div>
                                       <div className="w-[100px] shrink-0 flex justify-center">
-                                         <span className={`text-[10px] px-2 py-1 rounded-md font-medium text-center ${lead.finalStatus === 'Đã chốt' ? 'bg-green-100 text-green-700' : lead.finalStatus?.includes('Không') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                            {lead.finalStatus || 'Đang xử lý'}
+                                         <span className={`text-[10px] px-2 py-1 rounded-md font-medium text-center ${getLastStatus(lead) === 'Đã chốt' ? 'bg-green-100 text-green-700' : getLastStatus(lead)?.includes('Không') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                            {getLastStatus(lead) || 'Đang xử lý'}
                                          </span>
                                       </div>
                                       <div className="flex-1 px-4 relative pt-1">

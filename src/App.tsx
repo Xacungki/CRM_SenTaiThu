@@ -134,11 +134,8 @@ export default function App() {
       
       // Status matching (simplified)
       if (filters.status) {
-        if (filters.status === 'Đang chăm sóc' && (!lead.finalStatus || lead.finalStatus === '')) {
-           // It's match
-        } else if (lead.finalStatus !== filters.status) {
-           return false;
-        }
+        const leadLastStatus = getIsClosed(lead) ? 'Đã chốt' : (lead.care1 ? 'Đang chăm sóc' : 'Chưa xử lý');
+        if (filters.status !== leadLastStatus) return false;
       }
 
       // Time matching
@@ -191,7 +188,7 @@ export default function App() {
       }
 
       // Card Filter
-      if (cardFilter === 'closed' && lead.finalStatus !== 'Đã chốt') return false;
+      if (cardFilter === 'closed') { let isClosed = false; for (let i = 7; i >= 1; i--) { const careVal = (lead as any)[`care${i}`]; if (careVal && careVal !== 'Trống') { if (careVal.includes('Đã chốt')) isClosed = true; break; } } if (!isClosed) return false; }
 
       return true;
     });
@@ -442,12 +439,7 @@ export default function App() {
       {currentRoute === 'leads' && (
         <div className="h-full flex flex-col animate-in fade-in">
           <div className="flex-1 min-h-[500px]">
-            <LeadTable 
-              leads={filteredLeads} 
-              loading={loading}
-              onEditLead={handleEditLead} 
-              onRefresh={fetchLeads}
-            />
+            <LeadTable leads={filteredLeads} loading={loading} onEditLead={handleEditLead} onRefresh={fetchLeads} totalCount={allLeads.length} />
           </div>
         </div>
       )}
@@ -473,31 +465,39 @@ export default function App() {
                // 'Đang chăm sóc' -> append Dang cham soc
                // 'Chưa xử lý' -> clear
                const updatedLead = { ...lead };
+               
+               const pushCare = (status: string) => {
+                   let set = false;
+                   const now = new Date();
+                   const timeStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                   for (let i = 7; i >= 1; i--) {
+                      if (updatedLead[`care${i}` as keyof Lead] && updatedLead[`care${i}` as keyof Lead] !== 'Trống') {
+                         if (i < 7) {
+                            updatedLead[`care${i+1}` as keyof Lead] = status as any;
+                            updatedLead[`time${i+1}` as keyof Lead] = timeStr as any;
+                         } else {
+                            updatedLead[`care7` as keyof Lead] = status as any;
+                            updatedLead[`time7` as keyof Lead] = timeStr as any;
+                         }
+                         set = true;
+                         break;
+                      }
+                   }
+                   if (!set) {
+                      updatedLead.care1 = status;
+                      updatedLead.time1 = timeStr;
+                   }
+               };
+
                if (newGroup === 'Đã chốt') {
-                  updatedLead.finalStatus = 'Đã chốt';
+                  pushCare('Đã chốt');
                } else if (newGroup === 'Hủy / Không nghe') {
-                  updatedLead.finalStatus = 'Không nghe máy';
+                  pushCare('Không nghe máy');
                } else if (newGroup === 'Hẹn gọi lại') {
-                  updatedLead.finalStatus = '';
-                  // update latest care to Hẹn gọi lại if care1 missing
-                  if (!updatedLead.care1) updatedLead.care1 = 'Hẹn gọi lại';
-                  else {
-                     let set = false;
-                     for (let i = 7; i >= 1; i--) {
-                        if (updatedLead[`care${i}` as keyof Lead]) {
-                           if (i < 7) updatedLead[`care${i+1}` as keyof Lead] = 'Hẹn gọi lại' as any;
-                           else updatedLead[`care7` as keyof Lead] = 'Hẹn gọi lại' as any;
-                           set = true;
-                           break;
-                        }
-                     }
-                     if (!set) updatedLead.care1 = 'Hẹn gọi lại';
-                  }
+                  pushCare('Hẹn gọi lại');
                } else if (newGroup === 'Đang chăm sóc') {
-                  updatedLead.finalStatus = '';
                   if (!updatedLead.care1) updatedLead.care1 = 'Nghe máy - Xin Zalo';
                } else if (newGroup === 'Chưa xử lý') {
-                  updatedLead.finalStatus = '';
                   updatedLead.care1 = '';
                }
                

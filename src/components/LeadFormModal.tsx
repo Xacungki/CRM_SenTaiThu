@@ -106,6 +106,11 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     const { name, value } = e.target;
     setFormData(prev => {
        const newData = { ...prev, [name]: value };
+       if (name.startsWith('care') && value && value !== 'Trống') {
+           const num = name.replace('care', '');
+           const now = new Date();
+           newData[`time${num}`] = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+       }
        if (name === 'branch' && value) {
           const matchedCskh = users.find(u => u.branch === value && (u.role === 'sale'));
           if (matchedCskh) {
