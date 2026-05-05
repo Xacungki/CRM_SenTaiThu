@@ -81,12 +81,18 @@ export const gasService = {
       if (json.status === 'success' && json.leads) { // Check if it's new format
          // Parse leads like getLeads does
          const leadsData = (json.leads || []).map((row: any) => {
-            const data: any = { _rowIndex: row._rowIndex };
+            const data: any = { 
+               _rowIndex: row._rowIndex || row.rowIndex || row.rowNumber 
+            };
             Object.keys(row).forEach(key => {
               if (key !== '_rowIndex') {
                 const mappedKey = Object.keys(KEY_MAPPING).find(k => KEY_MAPPING[k as keyof typeof KEY_MAPPING] === key || (key === 'Ngày ' && k === 'date') || (key === 'Số lượng khách' && k === 'customerCount'));
                 if (mappedKey) {
-                   data[mappedKey] = formatPossibleDate(row[key]);
+                   let val = formatPossibleDate(row[key]);
+                   if (mappedKey === 'id' || mappedKey === 'phone') {
+                      val = val !== null && val !== undefined ? String(val) : '';
+                   }
+                   data[mappedKey] = val;
                 } else {
                    if (!data.customFields) data.customFields = {};
                    data.customFields[key] = formatPossibleDate(row[key]);

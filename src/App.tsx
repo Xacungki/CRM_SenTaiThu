@@ -262,7 +262,10 @@ export default function App() {
   const handleSave = (updatedLead?: Lead) => {
     if (updatedLead) {
        setAllLeads(prev => {
-          const index = prev.findIndex(l => l.id === updatedLead.id);
+          const index = prev.findIndex(l => 
+             (l.id && l.id === updatedLead.id) || 
+             (l._rowIndex && updatedLead._rowIndex && l._rowIndex === updatedLead._rowIndex)
+          );
           if (index >= 0) {
              const newLeads = [...prev];
              newLeads[index] = updatedLead;
