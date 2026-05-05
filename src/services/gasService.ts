@@ -29,6 +29,19 @@ export const gasService = {
     }
   },
 
+  async getDropdowns(): Promise<Record<string, string[]>> {
+    const url = getGasUrl();
+    if (!url) return {};
+    try {
+      const response = await fetch(`${url}?action=GET_DROPDOWNS&_t=${Date.now()}`);
+      const json = await response.json();
+      return json.data || {};
+    } catch (error) {
+      console.error("Failed to fetch dropdowns:", error);
+      return {};
+    }
+  },
+
   async getUsers(): Promise<CRMUser[]> {
     const url = getGasUrl();
     if (!url) return [];
@@ -222,6 +235,25 @@ export const gasService = {
       console.error("Failed to update lead:", error);
       return false;
     }
+  },
+
+  async deleteLead(lead: Lead): Promise<boolean> {
+     const url = getGasUrl();
+     if (!url) return true;
+     try {
+       const response = await fetch(url, {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'text/plain',
+         },
+         body: JSON.stringify({ action: 'DELETE', data: { _rowIndex: lead._rowIndex } })
+       });
+       const json = await response.json();
+       return json.status === 'success';
+     } catch (error) {
+       console.error("Failed to delete lead:", error);
+       return false;
+     }
   }
 };
 

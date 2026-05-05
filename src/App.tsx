@@ -96,6 +96,7 @@ export default function App() {
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
   const [schemaHeaders, setSchemaHeaders] = useState<string[]>([]);
   const [branchRoles, setBranchRoles] = useState<any[]>([]);
+  const [dropdowns, setDropdowns] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<any>(null);
   const [cardFilter, setCardFilter] = useState<'all' | 'closed'>('all');
@@ -201,13 +202,15 @@ export default function App() {
     setLoading(true);
     toast.loading('Đang đồng bộ dữ liệu từ Google Sheets...', { id: 'sync-leads' });
     try {
-      const [data, fetchedBranchRoles] = await Promise.all([
+      const [data, fetchedBranchRoles, fetchedDropdowns] = await Promise.all([
          gasService.getLeads(),
-         gasService.getBranchRoles()
+         gasService.getBranchRoles(),
+         gasService.getDropdowns()
       ]);
       setAllLeads(data.leads);
       setSchemaHeaders(data.schema);
       setBranchRoles(fetchedBranchRoles);
+      setDropdowns(fetchedDropdowns);
       toast.success(`Đã cập nhật ${data.leads.length} bản ghi thành công.`, { id: 'sync-leads' });
     } catch (error) {
       toast.error('Lỗi khi tải dữ liệu từ Google Sheets.', { id: 'sync-leads' });
@@ -236,6 +239,28 @@ export default function App() {
 
   const handleSave = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleDeleteLead = async (lead: Lead) => {
+    toast.loading('Đang xóa khách hàng...', { id: 'delete-lead' });
+    const success = await gasService.deleteLead(lead);
+    if (success) {
+      toast.success('Đã xóa khách hàng thành công.', { id: 'delete-lead' });
+      setIsFormOpen(false);
+      setRefreshTrigger(prev => prev + 1);
+      
+      gasService.addAuditLog({
+         timestamp: new Date().toISOString(),
+         user: currentUser.username,
+         action: 'DELETE',
+         branch: lead.branch || '',
+         targetId: lead.id,
+         targetName: lead.fullName || 'Khách hàng',
+         details: `Xóa số điện thoại ${lead.phone}`
+      });
+    } else {
+      toast.error('Lỗi khi xóa khách hàng. Vui lòng thử lại.', { id: 'delete-lead' });
+    }
   };
 
   // Compute stats
@@ -445,6 +470,15 @@ export default function App() {
                if (success) {
                   toast.success('Chuyển trạng thái thành công!', {id: 'update-kanban'});
                   setRefreshTrigger(p => p + 1);
+                  gasService.addAuditLog({
+                     timestamp: new Date().toISOString(),
+                     user: currentUser.username,
+                     action: 'UPDATE',
+                     branch: updatedLead.branch || '',
+                     targetId: updatedLead.id,
+                     targetName: updatedLead.fullName || 'Khách hàng',
+                     details: `Chuyển trạng thái sang ${newGroup} (Kanban)`
+                  });
                } else {
                   toast.error('Lỗi khi chuyển trạng thái', {id: 'update-kanban'});
                }
@@ -456,11 +490,13 @@ export default function App() {
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)} 
         onSave={handleSave}
+        onDelete={handleDeleteLead}
         lead={editingLead}
         currentUser={currentUser}
         schema={schemaHeaders}
         allLeads={allLeads}
         branchRoles={branchRoles}
+        dropdowns={dropdowns}
       />
     </Layout>
     <Toaster />

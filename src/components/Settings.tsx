@@ -662,9 +662,40 @@ function doGet(e) {
        // Return latest 500 records
        return ContentService.createTextOutput(JSON.stringify({ status: "success", data: result.reverse().slice(0, 500) })).setMimeType(ContentService.MimeType.JSON);
     }
+    
+    if (action === 'GET_DROPDOWNS') {
+       let dropdownSheet = ss.getSheetByName('DROPDOWNS');
+       if (!dropdownSheet) {
+         dropdownSheet = ss.insertSheet('DROPDOWNS');
+         dropdownSheet.appendRow(['Nguồn', 'Phân loại Data', 'Tình trạng chốt', 'Chăm sóc lần']);
+         dropdownSheet.appendRow(['Facebook', 'Data Nóng', 'Đã chốt', 'Không nghe máy']);
+         dropdownSheet.appendRow(['Tiktok', 'Data Lạnh', 'Không nghe máy / Hủy', 'Sai số']);
+         dropdownSheet.appendRow(['Google', 'Data Cũ', 'Khách xa', 'Từ chối']);
+         dropdownSheet.appendRow(['Zalo', '', 'Sai số', 'Hẹn gọi lại']);
+         dropdownSheet.appendRow(['Organic', '', '', 'Tiềm năng']);
+       }
+       const data = dropdownSheet.getDataRange().getValues();
+       if (data.length <= 1) {
+           return ContentService.createTextOutput(JSON.stringify({ status: "success", data: {} })).setMimeType(ContentService.MimeType.JSON);
+       }
+       const headers = data[0];
+       let result = {};
+       headers.forEach((h) => { if (h) result[h] = []; });
+       for (let i = 1; i < data.length; i++) {
+           headers.forEach((h, colIdx) => {
+               if (h && data[i][colIdx]) result[h].push(data[i][colIdx]);
+           });
+       }
+       return ContentService.createTextOutput(JSON.stringify({ status: "success", data: result })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     // Default: GET_LEADS
-    const sheet = ss.getSheetByName('ALL DATA');
+    let sheet = ss.getSheetByName('ALL DATA');
+    if (!sheet) {
+        sheet = ss.insertSheet('ALL DATA');
+        sheet.appendRow(["(Leave this row for formatting or instructions)"]);
+        sheet.appendRow(["ID", "Phân loại Data", "Họ và tên", "Số điện thoại", "Chi nhánh", "Nguồn", "Ngày", "Ghi chú", "Mức độ quan tâm", "Nhân viên CSKH"]);
+    }
     const data = sheet.getDataRange().getValues();
     const headers = data[1]; // Header is on row 2
     const rows = data.slice(2);
@@ -708,8 +739,13 @@ function doPost(e) {
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const body = JSON.parse(e.postData.contents);
 
-    const sheet = ss.getSheetByName('ALL DATA');
-    const headers = sheet ? sheet.getRange(2, 1, 1, sheet.getLastColumn()).getValues()[0] : [];
+    let sheet = ss.getSheetByName('ALL DATA');
+    if (!sheet) {
+        sheet = ss.insertSheet('ALL DATA');
+        sheet.appendRow(["(Leave this row for formatting or instructions)"]);
+        sheet.appendRow(["ID", "Phân loại Data", "Họ và tên", "Số điện thoại", "Chi nhánh", "Nguồn", "Ngày", "Ghi chú"]);
+    }
+    const headers = sheet.getRange(2, 1, 1, sheet.getLastColumn()).getValues()[0];
     
     // ----------------------------------------------------
     // Webhook Facebook Messenger / Lead Ads
@@ -873,6 +909,12 @@ function doPost(e) {
       sheet.getRange(rowIndex, 1, 1, headers.length).setValues([updateData]);
       SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "UPDATE" })).setMimeType(ContentService.MimeType.JSON);
+    } else if (action === 'DELETE') {
+      const rowIndex = payload._rowIndex;
+      if(!rowIndex) throw new Error("Missing _rowIndex for delete");
+      sheet.deleteRow(rowIndex);
+      SpreadsheetApp.flush();
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "DELETE" })).setMimeType(ContentService.MimeType.JSON);
     }
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() })).setMimeType(ContentService.MimeType.JSON);

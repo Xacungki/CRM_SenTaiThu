@@ -8,14 +8,16 @@ interface LeadFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
+  onDelete?: (lead: Lead) => Promise<void>;
   lead?: Lead | null;
   currentUser: CRMUser;
   schema?: string[];
   allLeads?: Lead[];
   branchRoles?: any[];
+  dropdowns?: Record<string, string[]>;
 }
 
-export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUser, schema, allLeads = [], branchRoles = [] }: LeadFormModalProps) {
+export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead, currentUser, schema, allLeads = [], branchRoles = [], dropdowns = {} }: LeadFormModalProps) {
   const [formData, setFormData] = useState<Partial<Lead>>({});
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'care' | 'billing' | 'advanced'>('info');
@@ -120,25 +122,29 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
       return;
     }
 
+    const now = new Date();
+    const formattedNow = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const payload = { ...formData, lastCareStatus: formattedNow };
+
     setLoading(true);
     toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });
     try {
       if (lead?.id) {
-        await gasService.updateLead(formData as Lead);
+        await gasService.updateLead(payload as Lead);
         gasService.addAuditLog({
            timestamp: new Date().toISOString(),
            user: currentUser.username,
            action: 'UPDATE',
-           branch: formData.branch || '',
+           branch: payload.branch || '',
            targetId: lead.id,
-           targetName: formData.fullName || '',
+           targetName: payload.fullName || '',
            details: 'Cập nhật thông tin khách hàng'
         });
         toast.success("Đã cập nhật dữ liệu thành công.", { id: 'save-lead' });
       } else {
         // Prevent duplicate phone number check
-        if (formData.phone) {
-           const isDuplicate = allLeads.some(l => l.phone === formData.phone && l.id !== lead?.id);
+        if (payload.phone) {
+           const isDuplicate = allLeads.some(l => l.phone === payload.phone && l.id !== lead?.id);
            if (isDuplicate) {
               const confirmProceed = window.confirm("Cảnh báo: Số điện thoại này đã tồn tại trong hệ thống. Bạn có chắc chắn muốn tạo thêm khách hàng này không?");
               if (!confirmProceed) {
@@ -148,14 +154,14 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
               }
            }
         }
-        await gasService.createLead(formData);
+        await gasService.createLead(payload);
         gasService.addAuditLog({
            timestamp: new Date().toISOString(),
            user: currentUser.username,
            action: 'CREATE',
-           branch: formData.branch || '',
-           targetId: formData.phone || formData.fullName, // Temporary identifier
-           targetName: formData.fullName || '',
+           branch: payload.branch || '',
+           targetId: payload.phone || payload.fullName, // Temporary identifier
+           targetName: payload.fullName || '',
            details: 'Tạo mới khách hàng'
         });
         toast.success("Đã tạo mới khách hàng thành công.", { id: 'save-lead' });
@@ -268,19 +274,31 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nguồn</label>
                       <select disabled={isMktDisabled} name="source" value={formData.source || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500">
-                        <option value="Facebook">Facebook</option>
-                        <option value="Tiktok">Tiktok</option>
-                        <option value="Google">Google</option>
-                        <option value="Zalo">Zalo</option>
-                        <option value="Organic">Organic</option>
+                        {dropdowns['Nguồn'] && dropdowns['Nguồn'].length > 0 ? (
+                           dropdowns['Nguồn'].map(opt => <option key={opt} value={opt}>{opt}</option>)
+                        ) : (
+                           <>
+                             <option value="Facebook">Facebook</option>
+                             <option value="Tiktok">Tiktok</option>
+                             <option value="Google">Google</option>
+                             <option value="Zalo">Zalo</option>
+                             <option value="Organic">Organic</option>
+                           </>
+                        )}
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Phân loại Data</label>
                       <select disabled={isMktDisabled} name="dataType" value={formData.dataType || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500">
-                        <option value="Data Nóng">Data Nóng</option>
-                        <option value="Data Lạnh">Data Lạnh</option>
-                        <option value="Data Cũ">Data Cũ</option>
+                        {dropdowns['Phân loại Data'] && dropdowns['Phân loại Data'].length > 0 ? (
+                           dropdowns['Phân loại Data'].map(opt => <option key={opt} value={opt}>{opt}</option>)
+                        ) : (
+                           <>
+                             <option value="Data Nóng">Data Nóng</option>
+                             <option value="Data Lạnh">Data Lạnh</option>
+                             <option value="Data Cũ">Data Cũ</option>
+                           </>
+                        )}
                       </select>
                     </div>
                     <div>
@@ -350,12 +368,18 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
                               className={`w-full px-2 py-1.5 text-sm border border-gray-200 rounded outline-none focus:border-gray-900 disabled:opacity-70 disabled:cursor-not-allowed ${selectBgColor}`}
                             >
                               <option value="">Trống</option>
-                              <option value="Không nghe máy">Không nghe máy</option>
-                              <option value="Khách xa">Khách xa</option>
-                              <option value="Chăm sóc mới">Chăm sóc mới / Gọi lại</option>
-                              <option value="Khách tiềm năng">Khách tiềm năng</option>
-                              <option value="Đã đến hẹn">Đã đến hẹn</option>
-                              <option value="Sai số">Sai số</option>
+                              {dropdowns['Chăm sóc lần'] && dropdowns['Chăm sóc lần'].length > 0 ? (
+                                dropdowns['Chăm sóc lần'].map(opt => <option key={opt} value={opt}>{opt}</option>)
+                              ) : (
+                                <>
+                                  <option value="Không nghe máy">Không nghe máy</option>
+                                  <option value="Khách xa">Khách xa</option>
+                                  <option value="Chăm sóc mới">Chăm sóc mới / Gọi lại</option>
+                                  <option value="Khách tiềm năng">Khách tiềm năng</option>
+                                  <option value="Đã đến hẹn">Đã đến hẹn</option>
+                                  <option value="Sai số">Sai số</option>
+                                </>
+                              )}
                             </select>
                           </div>
                         </div>
@@ -409,15 +433,21 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
                           <label className="block text-sm font-medium text-gray-700 mb-1">Tình trạng chốt</label>
                           <select disabled={isCskhDisabled} name="finalStatus" value={formData.finalStatus || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 bg-white font-medium text-gray-900 border-green-200 focus:border-green-500 disabled:bg-gray-100 disabled:text-gray-500">
                             <option value="">-- Đang chăm sóc --</option>
-                            <option value="Đã chốt">Đã chốt (Thành công)</option>
-                            <option value="Không nghe máy">Không nghe máy / Hủy</option>
-                            <option value="Khách xa">Khách xa (Hủy)</option>
-                            <option value="Sai số">Sai số</option>
+                            {dropdowns['Tình trạng chốt'] && dropdowns['Tình trạng chốt'].length > 0 ? (
+                               dropdowns['Tình trạng chốt'].map(opt => <option key={opt} value={opt}>{opt}</option>)
+                            ) : (
+                               <>
+                                 <option value="Đã chốt">Đã chốt (Thành công)</option>
+                                 <option value="Không nghe máy">Không nghe máy / Hủy</option>
+                                 <option value="Khách xa">Khách xa (Hủy)</option>
+                                 <option value="Sai số">Sai số</option>
+                               </>
+                            )}
                           </select>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Ngày chốt (Lần cuối CSKH)</label>
-                          <input disabled={isCskhDisabled} name="lastCareStatus" value={formData.lastCareStatus || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-white focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:text-gray-500" placeholder="DD/MM/YYYY hh:mm" />
+                          <input disabled={true} title="Hệ thống tự động cập nhật khi lưu" name="lastCareStatus" value={formData.lastCareStatus || ''} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-gray-100 text-gray-500 cursor-not-allowed" placeholder="Tự động cập nhật" />
                         </div>
                     </div>
                  </div>
@@ -468,13 +498,26 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
           </form>
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 z-10">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            Hủy
-          </button>
-          <button type="submit" form="lead-form" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2">
-            {loading ? 'Đang lưu...' : 'Lưu dữ liệu'}
-          </button>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center z-10 w-full">
+          <div>
+            {lead && currentUser.role === 'admin' && onDelete && (
+               <button type="button" onClick={() => {
+                  if (window.confirm("Bạn có chắc chắn muốn xóa khách hàng này không? Dữ liệu sẽ không thể khôi phục.")) {
+                      onDelete(lead as Lead);
+                  }
+               }} className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                 Xóa Khách Hàng
+               </button>
+            )}
+          </div>
+          <div className="flex gap-3">
+             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+               Hủy
+             </button>
+             <button type="submit" form="lead-form" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2">
+               {loading ? 'Đang lưu...' : 'Lưu dữ liệu'}
+             </button>
+          </div>
         </div>
       </div>
     </div>
