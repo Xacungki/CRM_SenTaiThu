@@ -5,6 +5,44 @@ const getGasUrl = () => {
 };
 
 export const gasService = {
+  async getAppData(): Promise<{ leads: Lead[], schema: string[], dropdowns: Record<string, string[]>, branchRoles: BranchRole[] } | null> {
+    const url = getGasUrl();
+    if (!url) return null;
+    try {
+      const response = await fetch(`${url}?action=GET_APP_DATA&_t=${Date.now()}`);
+      const json = await response.json();
+      if (json.status === 'success' && json.leads) { // Check if it's new format
+         // Parse leads like getLeads does
+         const leadsData = (json.leads || []).map((row: any) => {
+            const data: any = { _rowIndex: row._rowIndex };
+            Object.keys(row).forEach(key => {
+              if (key !== '_rowIndex') {
+                const mappedKey = Object.keys(KEY_MAPPING).find(k => KEY_MAPPING[k as keyof typeof KEY_MAPPING] === key);
+                if (mappedKey) {
+                   data[mappedKey] = row[key];
+                } else {
+                   if (!data.customFields) data.customFields = {};
+                   data.customFields[key] = row[key];
+                }
+              }
+            });
+            return data as Lead;
+         });
+         
+         return {
+            leads: leadsData.reverse(),
+            schema: json.schema || [],
+            dropdowns: json.dropdowns || {},
+            branchRoles: json.branchRoles || []
+         };
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to fetch app data:", error);
+      return null;
+    }
+  },
+
   async getLeads(): Promise<SyncResponse> {
     const url = getGasUrl();
     if (!url) return { leads: getMockLeads(), schema: [] };

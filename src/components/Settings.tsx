@@ -689,6 +689,79 @@ function doGet(e) {
        return ContentService.createTextOutput(JSON.stringify({ status: "success", data: result })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (action === 'GET_APP_DATA') {
+       const getDropdownsData = () => {
+           let dropdownSheet = ss.getSheetByName('DROPDOWNS');
+           if (!dropdownSheet) return {};
+           const data = dropdownSheet.getDataRange().getValues();
+           if (data.length <= 1) return {};
+           const headers = data[0];
+           let result = {};
+           headers.forEach((h) => { if (h) result[h] = []; });
+           for (let i = 1; i < data.length; i++) {
+               headers.forEach((h, colIdx) => {
+                   if (h && data[i][colIdx]) result[h].push(data[i][colIdx]);
+               });
+           }
+           return result;
+       };
+
+       const getBranchRolesData = () => {
+           let branchSheet = ss.getSheetByName('BRANCH_ROLES');
+           if (!branchSheet) return [];
+           const data = branchSheet.getDataRange().getValues();
+           if (data.length <= 1) return [];
+           const headers = data[0];
+           return data.slice(1).map(row => {
+              let obj = {};
+              headers.forEach((h, i) => obj[h.toString().trim()] = row[i]);
+              return obj;
+           });
+       };
+
+       const getLeadsData = () => {
+           let sheet = ss.getSheetByName('ALL DATA');
+           if (!sheet) {
+               sheet = ss.insertSheet('ALL DATA');
+               sheet.appendRow(["(Leave this row for formatting or instructions)"]);
+               sheet.appendRow(["ID", "Phân loại Data", "Họ và tên", "Số điện thoại", "Chi nhánh", "Nguồn", "Ngày", "Ghi chú", "Mức độ quan tâm", "Nhân viên CSKH"]);
+           }
+           const data = sheet.getDataRange().getValues();
+           const headers = data[1] || [];
+           const rows = data.slice(2);
+           const result = rows.map((row, index) => {
+             // Avoid filtering to properly track original index
+             const originalRowIndex = index + 3;
+             let obj = { _rowIndex: originalRowIndex };
+             let hasData = false;
+             headers.forEach((header, i) => {
+               if(header) {
+                  let val = row[i];
+                  if (val && val instanceof Date) {
+                     val = Utilities.formatDate(val, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
+                  } else if (val === undefined || val === null) {
+                     val = "";
+                  }
+                  if (val !== "" && i <= 3) hasData = true; // Simple check if row has data
+                  obj[header.toString().trim()] = val;
+               }
+             });
+             if (!obj['ID'] && !obj['Số điện thoại'] && !obj['Họ và tên']) hasData = false;
+             return hasData ? obj : null;
+           }).filter(Boolean);
+           return { data: result, schema: headers.filter(Boolean) };
+       };
+
+       const leadsResponse = getLeadsData();
+       return ContentService.createTextOutput(JSON.stringify({ 
+           status: "success", 
+           leads: leadsResponse.data, 
+           schema: leadsResponse.schema,
+           dropdowns: getDropdownsData(),
+           branchRoles: getBranchRolesData()
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Default: GET_LEADS
     let sheet = ss.getSheetByName('ALL DATA');
     if (!sheet) {

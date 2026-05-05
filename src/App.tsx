@@ -202,16 +202,27 @@ export default function App() {
     setLoading(true);
     toast.loading('Đang đồng bộ dữ liệu từ Google Sheets...', { id: 'sync-leads' });
     try {
-      const [data, fetchedBranchRoles, fetchedDropdowns] = await Promise.all([
-         gasService.getLeads(),
-         gasService.getBranchRoles(),
-         gasService.getDropdowns()
-      ]);
-      setAllLeads(data.leads);
-      setSchemaHeaders(data.schema);
-      setBranchRoles(fetchedBranchRoles);
-      setDropdowns(fetchedDropdowns);
-      toast.success(`Đã cập nhật ${data.leads.length} bản ghi thành công.`, { id: 'sync-leads' });
+      // First try to fetch all data in one go (requires updated AppScript)
+      const appData = await gasService.getAppData();
+      if (appData) {
+         setAllLeads(appData.leads);
+         setSchemaHeaders(appData.schema);
+         setBranchRoles(appData.branchRoles);
+         setDropdowns(appData.dropdowns);
+         toast.success(`Đã cập nhật ${appData.leads.length} bản ghi thành công.`, { id: 'sync-leads' });
+      } else {
+         // Fallback to sequential fetching for old AppScript versions (no Promise.all to avoid throttling)
+         const leadsData = await gasService.getLeads();
+         setAllLeads(leadsData.leads);
+         setSchemaHeaders(leadsData.schema);
+         
+         const fetchedBranchRoles = await gasService.getBranchRoles();
+         setBranchRoles(fetchedBranchRoles);
+         
+         const fetchedDropdowns = await gasService.getDropdowns();
+         setDropdowns(fetchedDropdowns);
+         toast.success(`Đã cập nhật ${leadsData.leads.length} bản ghi thành công.`, { id: 'sync-leads' });
+      }
     } catch (error) {
       toast.error('Lỗi khi tải dữ liệu từ Google Sheets.', { id: 'sync-leads' });
     } finally {
