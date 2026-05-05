@@ -272,17 +272,18 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
           </button>
         </div>
 
-        <div className="flex overflow-x-auto border-b border-gray-200 px-6 hide-scrollbar flex-shrink-0">
-          <button type="button" onClick={() => setActiveTab('info')} className={activeTab === 'info' ? activeTabClass : inactiveTabClass}>Thông tin chung</button>
-          <button type="button" onClick={() => setActiveTab('care')} className={activeTab === 'care' ? activeTabClass : inactiveTabClass}>Lịch sử CSKH</button>
-          <button type="button" onClick={() => setActiveTab('billing')} className={activeTab === 'billing' ? activeTabClass : inactiveTabClass}>Chốt & Thanh toán</button>
-          {dynamicKeys.length > 0 && (
-            <button type="button" onClick={() => setActiveTab('advanced')} className={activeTab === 'advanced' ? activeTabClass : inactiveTabClass}>Cột tùy chỉnh ({dynamicKeys.length})</button>
-          )}
-        </div>
+        <form id="lead-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="flex flex-col h-full">
+          <div className="flex overflow-x-auto border-b border-gray-200 px-6 hide-scrollbar flex-shrink-0">
+            <button type="button" onClick={() => setActiveTab('info')} className={activeTab === 'info' ? activeTabClass : inactiveTabClass}>Thông tin chung</button>
+            <button type="button" onClick={() => setActiveTab('care')} className={activeTab === 'care' ? activeTabClass : inactiveTabClass}>Lịch sử CSKH</button>
+            <button type="button" onClick={() => setActiveTab('billing')} className={activeTab === 'billing' ? activeTabClass : inactiveTabClass}>Chốt & Thanh toán</button>
+            {dynamicKeys.length > 0 && (
+              <button type="button" onClick={() => setActiveTab('advanced')} className={activeTab === 'advanced' ? activeTabClass : inactiveTabClass}>Cột tùy chỉnh ({dynamicKeys.length})</button>
+            )}
+          </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
-          <form id="lead-form" onSubmit={handleSubmit} className="space-y-6">
+          <div className="p-6 overflow-y-auto flex-1 space-y-6">
+
             
             {/* TAB INFO */}
             {activeTab === 'info' && (
@@ -516,6 +517,21 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                           <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian chốt (Lần cuối CSKH)</label>
                           <input disabled={true} title="Hệ thống tự động cập nhật khi lưu" name="lastCareStatus" value={formData.lastCareStatus || ''} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-gray-100 text-gray-500 cursor-not-allowed" placeholder="Tự động cập nhật" />
                         </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Tình trạng chốt</label>
+                          <select name="finalStatus" value={formData.finalStatus || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white">
+                            <option value="">-- Chọn tình trạng chốt --</option>
+                            {dropdowns['Tình trạng chốt'] && dropdowns['Tình trạng chốt'].length > 0 ? (
+                               dropdowns['Tình trạng chốt'].map(opt => <option key={opt} value={opt}>{opt}</option>)
+                            ) : (
+                               <>
+                                 <option value="Đã chốt">Đã chốt</option>
+                                 <option value="Không chốt">Không chốt</option>
+                                 <option value="Hẹn lại">Hẹn lại</option>
+                               </>
+                            )}
+                          </select>
+                        </div>
                     </div>
                  </div>
 
@@ -561,34 +577,34 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
               </div>
             )}
             
-          </form>
-        </div>
+          </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center z-10 w-full">
-          <div>
-            {lead && currentUser.role === 'admin' && (
-              <button 
-                type="button" 
-                onClick={() => {
-                  if (window.confirm('Bạn có chắc chắn muốn xóa khách hàng này không? Hành động này không thể hoàn tác.')) {
-                    onDelete?.(lead as Lead);
-                  }
-                }} 
-                className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
-              >
-                Xóa khách hàng
-              </button>
-            )}
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center z-10 w-full">
+            <div>
+              {lead && currentUser.role === 'admin' && (
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (window.confirm('Bạn có chắc chắn muốn xóa khách hàng này không? Hành động này không thể hoàn tác.')) {
+                      onDelete?.(lead as Lead);
+                    }
+                  }} 
+                  className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
+                >
+                  Xóa khách hàng
+                </button>
+              )}
+            </div>
+            <div className="flex gap-3">
+               <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                 Hủy
+               </button>
+               <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2">
+                 {loading ? 'Đang lưu...' : 'Lưu dữ liệu'}
+               </button>
+            </div>
           </div>
-          <div className="flex gap-3">
-             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-               Hủy
-             </button>
-             <button type="submit" form="lead-form" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2">
-               {loading ? 'Đang lưu...' : 'Lưu dữ liệu'}
-             </button>
-          </div>
-        </div>
+        </form>
       </div>
     </div>
   );

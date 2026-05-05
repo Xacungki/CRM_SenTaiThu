@@ -62,6 +62,7 @@ const KEY_MAPPING = {
   care7: 'Chăm sóc lần 7',
   time7: 'Thời gian csl7',
   lastCareStatus: 'Lần chăm sóc cuối cùng',
+  finalStatus: 'Tình trạng chốt',
   customerCount: 'Số lượng',
   unitPrice: 'Đơn giá',
   totalAmount: 'Thành tiền',
@@ -83,7 +84,7 @@ export const gasService = {
             const data: any = { _rowIndex: row._rowIndex };
             Object.keys(row).forEach(key => {
               if (key !== '_rowIndex') {
-                const mappedKey = Object.keys(KEY_MAPPING).find(k => KEY_MAPPING[k as keyof typeof KEY_MAPPING] === key || (key === 'Ngày ' && k === 'date'));
+                const mappedKey = Object.keys(KEY_MAPPING).find(k => KEY_MAPPING[k as keyof typeof KEY_MAPPING] === key || (key === 'Ngày ' && k === 'date') || (key === 'Số lượng khách' && k === 'customerCount'));
                 if (mappedKey) {
                    data[mappedKey] = formatPossibleDate(row[key]);
                 } else {
@@ -399,7 +400,8 @@ function mapSheetRowToLead(row: any): Lead {
     care7: row['Chăm sóc lần 7'] || '',
     time7: formatPossibleDate(row['Thời gian csl7']) || '',
     lastCareStatus: formatPossibleDate(row['Lần chăm sóc cuối cùng']) || '',
-    customerCount: row['Số lượng'] || '',
+    finalStatus: row['Tình trạng chốt'] || '',
+    customerCount: row['Số lượng'] || row['Số lượng khách'] || '',
     unitPrice: row['Đơn giá'] || '',
     totalAmount: row['Thành tiền'] || '',
     cskhNote: row['Nội dung CSKH'] || '',
@@ -439,6 +441,7 @@ function mapLeadToSheetRow(lead: Partial<Lead>): any {
     'Chăm sóc lần 7': lead.care7,
     'Thời gian csl7': protectDateStr(lead.time7),
     'Lần chăm sóc cuối cùng': protectDateStr(lead.lastCareStatus),
+    'Tình trạng chốt': lead.finalStatus,
     'Số lượng': lead.customerCount,
     'Đơn giá': lead.unitPrice,
     'Thành tiền': lead.totalAmount,
