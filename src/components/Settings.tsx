@@ -70,10 +70,27 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
   const handleSave = () => {
     localStorage.setItem('sen_crm_gas_url', gasUrl);
     localStorage.setItem('sen_crm_logo', logoUrl);
+    window.dispatchEvent(new Event('logo_updated'));
     setSaved(true);
     toast.success('Đã lưu cấu hình', { description: 'Hệ thống đã nhận kết nối Google Scripts và Logo mới.'});
     setTimeout(() => setSaved(false), 3000);
     fetchData();
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB restriction
+        toast.error('Ảnh quá lớn', { description: 'Vui lòng chọn ảnh có kích thước dưới 2MB.'});
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoUrl(reader.result as string);
+        toast.success('Đã tải ảnh lên', { description: 'Nhấn Lưu cấu hình để áp dụng thay đổi.'});
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleCopyCode = () => {
@@ -216,15 +233,35 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-2">Logo Cửa Hàng (URL Hình ảnh)</label>
-                  <Input 
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://example.com/logo.png"
-                    className="w-full"
-                  />
-                  <p className="text-xs text-gray-500 mt-1.5 focus:outline-none">
-                    Nhập link ảnh (PNG/JPG) để hiển thị ở màn hình Đăng nhập. Nếu để trống sẽ sử dụng logo mặc định.
+                  <label className="text-sm font-medium text-gray-700 block mb-2">Logo Cửa Hàng (URL hoặc Tải lên)</label>
+                  <div className="flex gap-2 items-center">
+                    <Input 
+                      value={logoUrl}
+                      onChange={(e) => setLogoUrl(e.target.value)}
+                      placeholder="https://example.com/logo.png"
+                      className="w-full flex-1"
+                    />
+                    <div className="relative shrink-0">
+                      <input 
+                        type="file" 
+                        accept="image/png, image/jpeg, image/jpg" 
+                        onChange={handleLogoUpload} 
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        title="Tải ảnh lên"
+                      />
+                      <Button variant="outline" type="button" className="pointer-events-none">
+                        Tải ảnh lên
+                      </Button>
+                    </div>
+                  </div>
+                  {logoUrl && (
+                    <div className="mt-3 p-3 bg-gray-50 border border-gray-100 rounded-lg inline-block">
+                      <p className="text-xs text-gray-500 mb-2">Xem trước:</p>
+                      <img src={logoUrl} alt="Logo Preview" className="h-10 object-contain" />
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2 focus:outline-none">
+                    Nhập link ảnh hoặc Chọn file để tải (Dưới 2MB) hiển thị ở màn hình Đăng nhập và menu.
                   </p>
                 </div>
                 

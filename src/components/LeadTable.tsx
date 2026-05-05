@@ -260,7 +260,26 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
                     {/* Simplified view of CSKH path */}
                     <div className="flex flex-col gap-1">
                       {lead.lastCareStatus ? (
-                        <span className="text-sm font-medium text-gray-900">Lần cuối: {lead.lastCareStatus}</span>
+                        <div className="flex flex-col">
+                           <span className="text-sm font-medium text-gray-900 mb-1">
+                             Lần cuối: {lead.lastCareStatus}
+                           </span>
+                           {(() => {
+                              let lastStatus = '';
+                              for (let i = 7; i >= 1; i--) {
+                                  let careVal = (lead as any)[`care${i}`];
+                                  if (careVal && careVal !== 'Trống') {
+                                      lastStatus = careVal;
+                                      break;
+                                  }
+                              }
+                              return lastStatus ? (
+                                <span className="inline-flex items-center self-start text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 mb-1">
+                                  {lastStatus}
+                                </span>
+                              ) : null;
+                           })()}
+                        </div>
                       ) : (
                         <span className="text-sm text-gray-400">Chưa CSKH</span>
                       )}

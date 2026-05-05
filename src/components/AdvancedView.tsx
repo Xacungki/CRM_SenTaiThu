@@ -447,7 +447,7 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                           </div>
                        </div>
                        <div className="space-y-6">
-                          {allowedLeads.map(lead => {
+                          {allowedLeads.filter(lead => lead.finalStatus !== 'Đã chốt').sort((a,b) => { let countA = 0; for(let i=1; i<=7; i++) { if(a['care'+i] && a['care'+i] !== 'Trống') countA++; } let countB = 0; for(let i=1; i<=7; i++) { if(b['care'+i] && b['care'+i] !== 'Trống') countB++; } return countB - countA; }).map(lead => {
                              const cares = [];
                              for(let i=1; i<=7; i++) {
                                 const cInfo = (lead as any)?.[`care${i}`];

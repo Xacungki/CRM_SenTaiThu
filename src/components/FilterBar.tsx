@@ -42,7 +42,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
   const hasActiveFilters = filters.source || filters.status || filters.branch || filters.timeFilter || filters.startDate || filters.endDate;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="relative flex flex-col sm:flex-row sm:items-center gap-3">
       <div className="relative flex-1 max-w-md">
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input 
@@ -85,7 +85,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
 
       {/* Flyout/Expandable Filters */}
       {showFilters && (
-        <div className="absolute top-full left-0 right-0 sm:left-[auto] sm:-right-0 mt-2 w-full sm:w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-4 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-full left-0 right-0 sm:left-[auto] sm:-right-0 mt-2 w-full sm:w-80 bg-white border border-gray-200 rounded-xl shadow-2xl z-[100] p-4 animate-in fade-in slide-in-from-top-2">
           <div className="space-y-4 max-h-[80vh] overflow-y-auto">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Thời gian</label>

@@ -14,6 +14,15 @@ interface LayoutProps {
 
 export default function Layout({ children, onAddNew, headerActions, currentRoute, onNavigate, currentUser, onLogout }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(localStorage.getItem('sen_crm_logo'));
+
+  React.useEffect(() => {
+    const handleLogoUpdate = () => {
+      setLogoUrl(localStorage.getItem('sen_crm_logo'));
+    };
+    window.addEventListener('logo_updated', handleLogoUpdate);
+    return () => window.removeEventListener('logo_updated', handleLogoUpdate);
+  }, []);
 
   const getRoleLabel = () => {
     switch (currentUser.role) {
@@ -35,9 +44,13 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
       <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col z-50 transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
-               <span className="text-white font-bold tracking-wider">S</span>
-            </div>
+            {logoUrl ? (
+               <img src={logoUrl} alt="Logo" className="w-8 h-8 rounded-md object-contain" />
+            ) : (
+               <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
+                 <span className="text-white font-bold tracking-wider">S</span>
+               </div>
+            )}
             <span className="font-semibold text-lg text-gray-900 tracking-tight">Sen Tài Thu</span>
           </div>
           <button className="md:hidden text-gray-500" onClick={() => setSidebarOpen(false)}>
@@ -111,7 +124,7 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-10 transition-shadow">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30 transition-shadow">
           <div className="flex items-center gap-4">
             <button 
               className="md:hidden p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
