@@ -13,7 +13,9 @@ interface AdvancedViewProps {
 export default function AdvancedView({ leads, onRowClick, currentUser, branchRoles = [], onUpdateLeadStatus }: AdvancedViewProps) {
   const [viewMode, setViewMode] = useState<'kanban' | 'timeline' | 'list' | 'tree' | 'gantt'>('kanban');
   const [branchFilter, setBranchFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const [timeFilter, setTimeFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
@@ -26,11 +28,51 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
        if (branchFilter && l.branch !== branchFilter) {
           return false;
        }
-       if (dateFilter) {
-          const [year, month, day] = dateFilter.split('-');
-          const formattedFilter = `${day}/${month}/${year}`;
-          if (l.date !== formattedFilter) return false;
+       
+       if (timeFilter && l.date) {
+         try {
+           let leadDateObj = new Date(l.date);
+           if (l.date.includes('/') && l.date.split('/').length === 3) {
+             const parts = l.date.split('/');
+             if (parts[2].length === 4) {
+                leadDateObj = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+             }
+           }
+           
+           if (!isNaN(leadDateObj.getTime())) {
+             const now = new Date();
+             if (timeFilter === '7days') {
+               const sevenDaysAgo = new Date();
+               sevenDaysAgo.setDate(now.getDate() - 7);
+               if (leadDateObj < sevenDaysAgo) return false;
+             } else if (timeFilter === 'thisMonth') {
+               if (leadDateObj.getMonth() !== now.getMonth() || leadDateObj.getFullYear() !== now.getFullYear()) return false;
+             } else if (timeFilter === 'lastMonth') {
+               let lastMonth = now.getMonth() - 1;
+               let year = now.getFullYear();
+               if (lastMonth < 0) {
+                  lastMonth = 11;
+                  year -= 1;
+               }
+               if (leadDateObj.getMonth() !== lastMonth || leadDateObj.getFullYear() !== year) return false;
+             } else if (timeFilter === 'custom') {
+               if (startDate) {
+                  const start = new Date(startDate);
+                  if (leadDateObj < start) return false;
+               }
+               if (endDate) {
+                  const end = new Date(endDate);
+                  end.setHours(23, 59, 59, 999);
+                  if (leadDateObj > end) return false;
+               }
+             } else {
+               const targetMonth = parseInt(timeFilter) - 1;
+               if (leadDateObj.getMonth() !== targetMonth) return false;
+             }
+           }
+         } catch(e) {}
        }
+
        if (searchTerm) {
           const s = searchTerm.toLowerCase();
           if (!l.fullName?.toLowerCase().includes(s) && !l.phone?.includes(s) && !l.note?.toLowerCase().includes(s)) {
@@ -39,7 +81,7 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
        }
        return true;
     });
-  }, [leads, currentUser, branchFilter, dateFilter, searchTerm]);
+  }, [leads, currentUser, branchFilter, timeFilter, startDate, endDate, searchTerm]);
 
   const kanbanGroups = useMemo(() => {
      const groups: Record<string, Lead[]> = {
@@ -87,13 +129,38 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none w-48 focus:border-gray-900 transition-colors"
                  />
-                 <input 
-                    type="date" 
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none text-gray-700"
-                    title="Lọc theo ngày Data"
-                 />
+                 <div className="flex items-center gap-2">
+                    <select 
+                       value={timeFilter}
+                       onChange={(e) => setTimeFilter(e.target.value)}
+                       className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none w-40"
+                    >
+                       <option value="">Tất cả thời gian</option>
+                       <option value="7days">7 ngày qua</option>
+                       <option value="thisMonth">Tháng này</option>
+                       <option value="lastMonth">Tháng trước</option>
+                       <option value="01">Tháng 1</option>
+                       <option value="02">Tháng 2</option>
+                       <option value="03">Tháng 3</option>
+                       <option value="04">Tháng 4</option>
+                       <option value="05">Tháng 5</option>
+                       <option value="06">Tháng 6</option>
+                       <option value="07">Tháng 7</option>
+                       <option value="08">Tháng 8</option>
+                       <option value="09">Tháng 9</option>
+                       <option value="10">Tháng 10</option>
+                       <option value="11">Tháng 11</option>
+                       <option value="12">Tháng 12</option>
+                       <option value="custom">Tùy chỉnh...</option>
+                    </select>
+                    {timeFilter === 'custom' && (
+                       <div className="flex items-center gap-2 animate-in fade-in">
+                          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-[120px] px-2 py-1.5 text-sm border border-gray-200 rounded outline-none focus:border-gray-900" title="Từ ngày" />
+                          <span className="text-gray-400 font-medium">-</span>
+                          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-[120px] px-2 py-1.5 text-sm border border-gray-200 rounded outline-none focus:border-gray-900" title="Đến ngày" />
+                       </div>
+                    )}
+                 </div>
                  <select 
                     value={branchFilter}
                     onChange={(e) => setBranchFilter(e.target.value)}

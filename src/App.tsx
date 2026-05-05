@@ -416,7 +416,7 @@ export default function App() {
         </div>
       )}
 
-      {currentRoute === 'settings' && (
+      {currentRoute === 'settings' && currentUser?.role === 'admin' && (
         <Settings />
       )}
 

@@ -122,9 +122,16 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
       return;
     }
 
-    const now = new Date();
-    const formattedNow = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const payload = { ...formData, lastCareStatus: formattedNow };
+    let lastCareTime = '';
+    for (let i = 7; i >= 1; i--) {
+        const careValue = (formData as any)[`care${i}`];
+        if (careValue && careValue !== 'Trống' && careValue !== '') {
+            lastCareTime = (formData as any)[`time${i}`] || '';
+            break;
+        }
+    }
+
+    const payload = { ...formData, lastCareStatus: lastCareTime };
 
     setLoading(true);
     toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });
@@ -193,7 +200,8 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     'Chăm sóc lần 3', 'Thời gian csl3', 'Chăm sóc lần 4', 'Thời gian csl4',
     'Chăm sóc lần 5', 'Thời gian csl5', 'Chăm sóc lần 6', 'Thời gian csl6',
     'Chăm sóc lần 7', 'Thời gian csl7', 'Lần chăm sóc cuối cùng', 'Tình trạng chốt',
-    'Số lượng khách', 'Đơn giá', 'Thành tiền'
+    'Số lượng khách', 'Đơn giá', 'Thành tiền',
+    'nextCareDate', 'nextCareNote', 'Ngày hẹn CSKH', 'Nội dung nhắc nhở'
   ];
   
   const dynamicKeysFromSchema = (schema || []).filter(k => 
