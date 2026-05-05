@@ -17,6 +17,17 @@ interface LeadFormModalProps {
   dropdowns?: Record<string, string[]>;
 }
 
+const getCurrentFormattedTime = () => {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} ${hh}:${mins}:${ss}`;
+};
+
 export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead, currentUser, schema, allLeads = [], branchRoles = [], dropdowns = {} }: LeadFormModalProps) {
   const [formData, setFormData] = useState<Partial<Lead>>({});
   const [loading, setLoading] = useState(false);
@@ -32,7 +43,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
       setFormData(lead);
     } else {
       setFormData({
-        date: new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY
+        date: getCurrentFormattedTime().split(' ')[0], // DD/MM/YYYY
         source: 'Organic',
         dataType: 'Data Nóng',
         branch: currentUser.role === 'sale' ? currentUser.branch : '',
@@ -57,6 +68,29 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     }
   }, [formData.customerCount, formData.unitPrice, formData.finalStatus]);
 
+  useEffect(() => {
+    // auto calculate lastCareStatus on the fly
+    let lastCareTime = '';
+    for (let i = 7; i >= 1; i--) {
+        const careValue = (formData as any)[`care${i}`];
+        if (careValue && careValue !== 'Trống' && careValue !== '') {
+            lastCareTime = (formData as any)[`time${i}`] || '';
+            break;
+        }
+    }
+    if (formData.lastCareStatus !== lastCareTime) {
+      setFormData(prev => ({ ...prev, lastCareStatus: lastCareTime }));
+    }
+  }, [
+    formData.care1, formData.time1,
+    formData.care2, formData.time2,
+    formData.care3, formData.time3,
+    formData.care4, formData.time4,
+    formData.care5, formData.time5,
+    formData.care6, formData.time6,
+    formData.care7, formData.time7
+  ]);
+
   if (!isOpen) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -75,18 +109,10 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
          const num = name.replace('care', '');
          if (!isNaN(Number(num))) {
             const timeField = `time${num}`;
-            if (value) {
+            if (value && value !== 'Trống' && value !== '') {
                // Update time to current nicely formatted
-               const now = new Date();
-               // format as DD/MM/YYYY HH:mm:ss for consistency
-               const dd = String(now.getDate()).padStart(2, '0');
-               const mm = String(now.getMonth() + 1).padStart(2, '0');
-               const yyyy = now.getFullYear();
-               const hh = String(now.getHours()).padStart(2, '0');
-               const mins = String(now.getMinutes()).padStart(2, '0');
-               const ss = String(now.getSeconds()).padStart(2, '0');
-               newData[timeField] = `${dd}/${mm}/${yyyy} ${hh}:${mins}:${ss}`;
-            } else {
+               newData[timeField] = getCurrentFormattedTime();
+            } else if (value === '' || value === 'Trống') {
                newData[timeField] = '';
             }
          }
@@ -104,7 +130,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
        setFormData({
          ...formData,
          [fieldName]: 'Chăm sóc mới',
-         [timeField]: new Date().toLocaleString('en-GB')
+         [timeField]: getCurrentFormattedTime()
        });
     } else {
        toast.warning("Đã đạt giới hạn số lần chăm sóc.", { description: "Bạn không thể thêm quá 7 lần chăm sóc cho một khách hàng." });
@@ -122,16 +148,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
       return;
     }
 
-    let lastCareTime = '';
-    for (let i = 7; i >= 1; i--) {
-        const careValue = (formData as any)[`care${i}`];
-        if (careValue && careValue !== 'Trống' && careValue !== '') {
-            lastCareTime = (formData as any)[`time${i}`] || '';
-            break;
-        }
-    }
-
-    const payload = { ...formData, lastCareStatus: lastCareTime };
+    const payload = { ...formData };
 
     setLoading(true);
     toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });
@@ -257,8 +274,10 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                       <label className="block text-sm font-medium text-gray-700 mb-1">Chi nhánh</label>
                       <select disabled={isMktDisabled} name="branch" value={formData.branch || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500">
                         <option value="">-- Chọn chi nhánh --</option>
-                        {branchRoles && branchRoles.length > 0 ? (
-                           branchRoles.map(r => <option key={r.branch} value={r.branch}>{r.branch}</option>)
+                        {dropdowns['Chi nhánh'] && dropdowns['Chi nhánh'].filter(b => b.trim()).length > 0 ? (
+                           dropdowns['Chi nhánh'].filter(b => b.trim()).map(opt => <option key={opt} value={opt}>{opt}</option>)
+                        ) : branchRoles && branchRoles.filter(r => r.branch?.trim()).length > 0 ? (
+                           branchRoles.filter(r => r.branch?.trim()).map(r => <option key={r.branch} value={r.branch}>{r.branch}</option>)
                         ) : (
                            <>
                              <option value="Sen Thái Thịnh">Sen Thái Thịnh</option>

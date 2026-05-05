@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Lead } from '../types';
-import { Phone, MapPin, Tag, Clock, RefreshCcw, Edit2, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Phone, MapPin, Tag, Clock, RefreshCcw, Edit2, ChevronLeft, ChevronRight, Download, Search } from 'lucide-react';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -87,23 +87,26 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-gray-900">Danh sách Khách Hàng <span className="text-gray-400 text-sm font-normal ml-2">({filteredLeads.length} leads)</span></h2>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full ring-1 ring-gray-900/5">
+      <div className="px-6 py-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight">Danh sách Khách Hàng</h2>
+          <p className="text-sm text-gray-500 mt-1">Đang hiển thị {filteredLeads.length} bản ghi theo bộ lọc</p>
+        </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={handleExport}
             disabled={filteredLeads.length === 0}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 rounded-lg transition-all shadow-sm disabled:opacity-50"
             title="Xuất Excel/CSV"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Xuất dữ liệu</span>
+            <span className="hidden sm:inline">Xuất file</span>
           </button>
           <button 
             onClick={onRefresh}
             disabled={loading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-all shadow-sm disabled:opacity-50"
           >
             <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Đồng bộ
@@ -111,7 +114,7 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
         </div>
       </div>
 
-      <div className="overflow-y-auto overflow-x-hidden flex-1 h-[500px]">
+      <div className="overflow-y-auto overflow-x-hidden flex-1 min-h-[500px] h-full bg-gray-50/30">
         {/* Mobile Card View */}
         <div className="md:hidden divide-y divide-gray-100">
           {loading ? (
@@ -120,8 +123,12 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
               <p>Đang tải dữ liệu từ Google Sheets...</p>
             </div>
           ) : paginatedLeads.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              Không có dữ liệu
+            <div className="p-12 text-center text-gray-500 flex flex-col items-center justify-center">
+              <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3 border border-gray-100">
+                <Search className="w-6 h-6 text-gray-400" />
+              </div>
+              <p className="text-gray-900 font-medium text-sm">Không tìm thấy dữ liệu</p>
+              <p className="text-gray-500 text-xs mt-1">Thử thay đổi cấu hình lọc.</p>
             </div>
           ) : (
             paginatedLeads.map((lead, i) => (
@@ -203,8 +210,14 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
               </tr>
             ) : paginatedLeads.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                  Không có dữ liệu
+                <td colSpan={7} className="px-6 py-20 text-center text-gray-500">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                      <Search className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-900 font-medium">Không tìm thấy dữ liệu</p>
+                    <p className="text-gray-500 text-sm mt-1">Thử thay đổi bộ lọc hoặc thêm Khách hàng mới.</p>
+                  </div>
                 </td>
               </tr>
             ) : (

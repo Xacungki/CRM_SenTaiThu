@@ -360,7 +360,9 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                         if (!acc[key]) acc[key] = [];
                         acc[key].push(lead);
                         return acc;
-                    }, {} as Record<string, Lead[]>)).map(([phone, customerLeads]) => (
+                    }, {} as Record<string, Lead[]>)).map(([phone, customerLeadsVal]) => {
+                        const customerLeads = customerLeadsVal as Lead[];
+                        return (
                         <details key={phone} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm group">
                             <summary className="bg-gray-50 px-4 py-3 font-semibold text-gray-800 flex justify-between items-center cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none">
                                <div className="flex items-center gap-3">
@@ -426,7 +428,8 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                                 ))}
                             </div>
                         </details>
-                    ))}
+                        );
+                    })}
                     {[...allowedLeads].length === 0 && (
                         <div className="text-center text-gray-400 py-12">Không có dữ liệu Phả hệ</div>
                     )}

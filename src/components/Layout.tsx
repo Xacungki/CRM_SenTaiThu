@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, UserPlus, Settings, LogOut, Menu, X, Shield, Users } from 'lucide-react';
+import { LayoutDashboard, UserPlus, Settings, LogOut, Menu, X, Shield, Users, List } from 'lucide-react';
 import { CRMUser } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
   onAddNew?: () => void;
   headerActions?: React.ReactNode;
-  currentRoute: 'dashboard' | 'settings' | 'advanced';
-  onNavigate: (route: 'dashboard' | 'settings' | 'advanced') => void;
+  currentRoute: 'dashboard' | 'settings' | 'advanced' | 'leads';
+  onNavigate: (route: 'dashboard' | 'settings' | 'advanced' | 'leads') => void;
   currentUser: CRMUser;
   onLogout: () => void;
 }
@@ -69,6 +69,13 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
               <span>Thêm Lead mới</span>
             </button>
           )}
+
+          <NavItem 
+            icon={<List className="w-5 h-5" />} 
+            label="Danh sách Khách hàng" 
+            active={currentRoute === 'leads'} 
+            onClick={() => { onNavigate('leads'); setSidebarOpen(false); }}
+          />
           
           {currentUser.role === 'admin' && (
             <>
@@ -113,7 +120,10 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
               <Menu className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-semibold text-gray-900 tracking-tight">
-              {currentRoute === 'dashboard' ? 'Quản lý Data MKT' : 'Cài đặt Hệ thống'}
+              {currentRoute === 'dashboard' && 'Quản lý Data MKT'}
+              {currentRoute === 'leads' && 'Danh sách Khách hàng'}
+              {currentRoute === 'advanced' && 'Chế độ Xem Nâng Cao'}
+              {currentRoute === 'settings' && 'Cài đặt Hệ thống'}
             </h1>
           </div>
           <div className="flex items-center gap-4 flex-1 justify-end">
@@ -122,7 +132,7 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
         </header>
 
         <div className="flex-1 overflow-auto p-4 md:p-8">
-          <div className={`${currentRoute === 'advanced' ? 'w-full' : 'max-w-7xl mx-auto'} h-full flex flex-col`}>
+          <div className={`${['advanced', 'leads'].includes(currentRoute) ? 'w-full' : 'max-w-7xl mx-auto'} h-full flex flex-col`}>
             {children}
           </div>
         </div>

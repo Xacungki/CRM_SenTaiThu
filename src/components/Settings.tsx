@@ -11,7 +11,11 @@ import { toast } from 'sonner';
 import { gasService } from '../services/gasService';
 import { CRMUser, BranchRole } from '../types';
 
-export default function Settings() {
+interface SettingsProps {
+  initialSchema?: string[];
+}
+
+export default function Settings({ initialSchema = [] }: SettingsProps) {
   const [gasUrl, setGasUrl] = useState('');
   const [saved, setSaved] = useState(false);
   const [users, setUsers] = useState<CRMUser[]>([]);
@@ -31,18 +35,24 @@ export default function Settings() {
     if (savedLogo) setLogoUrl(savedLogo);
   }, []);
 
+  useEffect(() => {
+    if (initialSchema && initialSchema.length > 0) {
+      setSchema(initialSchema);
+    }
+  }, [initialSchema]);
+
   const fetchData = async () => {
     setLoadingUsers(true);
     setLoadingBranchRoles(true);
     setLoadingAudit(true);
     try {
-       const u = await gasService.getUsers();
+       const [u, br, logs] = await Promise.all([
+          gasService.getUsers(),
+          gasService.getBranchRoles(),
+          gasService.getAuditLogs()
+       ]);
        setUsers(u);
-       const br = await gasService.getBranchRoles();
        setBranchRoles(br);
-       const res = await gasService.getLeads();
-       setSchema(res.schema);
-       const logs = await gasService.getAuditLogs();
        setAuditLogs(logs);
     } catch(e) {
        console.error("fetchData Error:", e);

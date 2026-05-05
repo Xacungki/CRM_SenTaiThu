@@ -4,6 +4,26 @@ const getGasUrl = () => {
   return localStorage.getItem('sen_crm_gas_url') || import.meta.env.VITE_GAS_URL;
 };
 
+// Helper: Format raw ISO strings correctly
+const formatPossibleDate = (val: any) => {
+  if (typeof val === 'string' && val.includes('T') && val.endsWith('Z')) {
+    try {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        // if it's strictly a date (time is 00:00 or similar), we could omit time, but returning with time is safe,
+        // or just return DD/MM/YYYY HH:mm. User requested "đồng nhất với tất cả các khung khác, đảm bảo Định dạng giờ là thống nhất và giống nhau".
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+      }
+    } catch(e) {}
+  }
+  return val;
+};
+
 // Define key mapping locally for parsing new JSON format
 const KEY_MAPPING = {
   id: 'ID',
@@ -55,10 +75,10 @@ export const gasService = {
               if (key !== '_rowIndex') {
                 const mappedKey = Object.keys(KEY_MAPPING).find(k => KEY_MAPPING[k as keyof typeof KEY_MAPPING] === key || (key === 'Ngày ' && k === 'date'));
                 if (mappedKey) {
-                   data[mappedKey] = row[key];
+                   data[mappedKey] = formatPossibleDate(row[key]);
                 } else {
                    if (!data.customFields) data.customFields = {};
-                   data.customFields[key] = row[key];
+                   data.customFields[key] = formatPossibleDate(row[key]);
                 }
               }
             });
@@ -338,8 +358,8 @@ function mapSheetRowToLead(row: any): Lead {
   return {
     ...row,
     _rowIndex: row._rowIndex,
-    id: row['ID'] || '',
-    date: row['Ngày '] || row['Ngày'] || '',
+    id: formatPossibleDate(row['ID']) || '',
+    date: formatPossibleDate(row['Ngày '] || row['Ngày']) || '',
     fullName: row['Họ và tên'] || '',
     phone: row['Số điện thoại'] || '',
     branch: row['Chi nhánh'] || '',
@@ -349,26 +369,26 @@ function mapSheetRowToLead(row: any): Lead {
     dataType: row['Phân loại Data'] || '',
     cskhStaff: row['Nhân viên CSKH'] || '',
     care1: row['Chăm sóc lần 1'] || '',
-    time1: row['Thời gian csl1'] || row['04/05/2026 16:52:32'] || '',
+    time1: formatPossibleDate(row['Thời gian csl1']) || '',
     care2: row['Chăm sóc lần 2'] || '',
-    time2: row['Thời gian csl2'] || '',
+    time2: formatPossibleDate(row['Thời gian csl2']) || '',
     care3: row['Chăm sóc lần 3'] || '',
-    time3: row['Thời gian csl3'] || '',
+    time3: formatPossibleDate(row['Thời gian csl3']) || '',
     care4: row['Chăm sóc lần 4'] || '',
-    time4: row['Thời gian csl4'] || '',
+    time4: formatPossibleDate(row['Thời gian csl4']) || '',
     care5: row['Chăm sóc lần 5'] || '',
-    time5: row['Thời gian csl5'] || '',
+    time5: formatPossibleDate(row['Thời gian csl5']) || '',
     care6: row['Chăm sóc lần 6'] || '',
-    time6: row['Thời gian csl6'] || '',
+    time6: formatPossibleDate(row['Thời gian csl6']) || '',
     care7: row['Chăm sóc lần 7'] || '',
-    time7: row['Thời gian csl7'] || '',
-    lastCareStatus: row['Lần chăm sóc cuối cùng'] || '',
+    time7: formatPossibleDate(row['Thời gian csl7']) || '',
+    lastCareStatus: formatPossibleDate(row['Lần chăm sóc cuối cùng']) || '',
     finalStatus: row['Tình trạng chốt'] || '',
     customerCount: row['Số lượng khách'] || '',
     unitPrice: row['Đơn giá'] || '',
     totalAmount: row['Thành tiền'] || '',
     cskhNote: row['Nội dung CSKH'] || '',
-    nextCareDate: row['Ngày hẹn CSKH'] || '',
+    nextCareDate: formatPossibleDate(row['Ngày hẹn CSKH']) || '',
     nextCareNote: row['Nội dung nhắc nhở'] || '',
   };
 }

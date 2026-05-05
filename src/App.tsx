@@ -17,7 +17,7 @@ import { gasService } from './services/gasService';
 
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
-import { Download } from 'lucide-react';
+import { Download, RefreshCcw } from 'lucide-react';
 
 const OverviewCharts = React.lazy(() => import('./components/OverviewCharts'));
 
@@ -89,7 +89,7 @@ export default function App() {
     localStorage.setItem('sen_crm_user', JSON.stringify(user));
   };
   
-  const [currentRoute, setCurrentRoute] = useState<'dashboard' | 'settings' | 'advanced'>('dashboard');
+  const [currentRoute, setCurrentRoute] = useState<'dashboard' | 'settings' | 'advanced' | 'leads'>('dashboard');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -297,9 +297,18 @@ export default function App() {
       currentRoute={currentRoute}
       onNavigate={setCurrentRoute}
       onAddNew={handleOpenNew}
-      headerActions={currentRoute === 'dashboard' ? (
+      headerActions={['dashboard', 'leads'].includes(currentRoute) ? (
         <div className="flex items-center gap-2">
            <FilterBar onFilterChange={setFilters} />
+           <button 
+             onClick={fetchLeads}
+             className={`px-3 py-2 flex items-center gap-2 bg-gray-900 text-white font-medium rounded-xl border border-gray-900 hover:bg-gray-800 shadow-sm text-sm ${loading ? 'opacity-50' : ''}`}
+             title="Đồng bộ dữ liệu"
+             disabled={loading}
+           >
+             <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+             <span className="hidden sm:inline">Đồng bộ</span>
+           </button>
            {currentUser.role !== 'sale' && (
              <>
                <input 
@@ -414,9 +423,12 @@ export default function App() {
                <OverviewCharts leads={filteredLeads} />
              </Suspense>
           )}
+        </div>
+      )}
 
-          {/* Lead Table */}
-          <div className="flex-1 min-h-[500px] animate-in slide-in-from-bottom-4">
+      {currentRoute === 'leads' && (
+        <div className="h-full flex flex-col animate-in fade-in">
+          <div className="flex-1 min-h-[500px]">
             <LeadTable 
               leads={filteredLeads} 
               loading={loading}
@@ -428,7 +440,7 @@ export default function App() {
       )}
 
       {currentRoute === 'settings' && currentUser?.role === 'admin' && (
-        <Settings />
+        <Settings initialSchema={schemaHeaders} />
       )}
 
       {currentRoute === 'advanced' && (
