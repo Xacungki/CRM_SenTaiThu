@@ -6,6 +6,9 @@ const getGasUrl = () => {
 
 // Helper: Format raw ISO strings correctly
 const formatPossibleDate = (val: any) => {
+  if (typeof val === 'string' && val.startsWith("'")) {
+    val = val.substring(1);
+  }
   if (typeof val === 'string' && val.includes('T') && val.endsWith('Z')) {
     try {
       const d = new Date(val);
@@ -22,6 +25,14 @@ const formatPossibleDate = (val: any) => {
     } catch(e) {}
   }
   return val;
+};
+
+// Helper: Ensure Google Sheets does not auto-format the text into the wrong date format
+const protectDateStr = (val: any) => {
+  if (!val) return val;
+  const str = String(val);
+  if (str.startsWith("'")) return str;
+  return `'${str}`;
 };
 
 // Define key mapping locally for parsing new JSON format
@@ -403,8 +414,8 @@ function mapLeadToSheetRow(lead: Partial<Lead>): any {
     rowIndex: lead._rowIndex,
     rowNumber: lead._rowIndex,
     'ID': lead.id,
-    'Ngày ': lead.date,
-    'Ngày': lead.date,
+    'Ngày ': protectDateStr(lead.date),
+    'Ngày': protectDateStr(lead.date),
     'Họ và tên': lead.fullName,
     'Số điện thoại': lead.phone,
     'Chi nhánh': lead.branch,
@@ -414,25 +425,25 @@ function mapLeadToSheetRow(lead: Partial<Lead>): any {
     'Phân loại Data': lead.dataType,
     'Nhân viên CSKH': lead.cskhStaff,
     'Chăm sóc lần 1': lead.care1,
-    'Thời gian csl1': lead.time1,
+    'Thời gian csl1': protectDateStr(lead.time1),
     'Chăm sóc lần 2': lead.care2,
-    'Thời gian csl2': lead.time2,
+    'Thời gian csl2': protectDateStr(lead.time2),
     'Chăm sóc lần 3': lead.care3,
-    'Thời gian csl3': lead.time3,
+    'Thời gian csl3': protectDateStr(lead.time3),
     'Chăm sóc lần 4': lead.care4,
-    'Thời gian csl4': lead.time4,
+    'Thời gian csl4': protectDateStr(lead.time4),
     'Chăm sóc lần 5': lead.care5,
-    'Thời gian csl5': lead.time5,
+    'Thời gian csl5': protectDateStr(lead.time5),
     'Chăm sóc lần 6': lead.care6,
-    'Thời gian csl6': lead.time6,
+    'Thời gian csl6': protectDateStr(lead.time6),
     'Chăm sóc lần 7': lead.care7,
-    'Thời gian csl7': lead.time7,
-    'Lần chăm sóc cuối cùng': lead.lastCareStatus,
+    'Thời gian csl7': protectDateStr(lead.time7),
+    'Lần chăm sóc cuối cùng': protectDateStr(lead.lastCareStatus),
     'Số lượng': lead.customerCount,
     'Đơn giá': lead.unitPrice,
     'Thành tiền': lead.totalAmount,
     'Nội dung CSKH': lead.cskhNote,
-    'Ngày hẹn CSKH': lead.nextCareDate,
+    'Ngày hẹn CSKH': protectDateStr(lead.nextCareDate),
     'Nội dung nhắc nhở': lead.nextCareNote,
   };
   

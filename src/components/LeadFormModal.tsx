@@ -311,7 +311,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Ngày (DD/MM/YYYY)</label>
-                      <input name="date" value={formData.date || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-gray-50 text-gray-500" readOnly />
+                      <input disabled={isMktDisabled} name="date" value={formData.date || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500" />
                     </div>
                   </div>
                 </div>
