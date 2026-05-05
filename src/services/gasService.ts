@@ -220,6 +220,8 @@ export const gasService = {
       return true;
     }
     
+    if (!lead.id) lead.id = `L-${Date.now().toString().slice(-6)}`;
+
     const payload = mapLeadToSheetRow(lead);
     try {
       const response = await fetch(url, {

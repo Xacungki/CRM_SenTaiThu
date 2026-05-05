@@ -28,14 +28,14 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    return Object.keys(counts).map(key => ({ name: key, value: counts[key] }));
+    return Object.keys(counts).map(key => ({ name: key, value: counts[key] })).sort((a, b) => b.value - a.value);
   }, [leads]);
 
   const revenueTrendData = useMemo(() => {
     const grouped: Record<string, number> = {};
     leads.forEach(lead => {
-       if (lead.finalStatus === 'Đã chốt' && lead.revenue) {
-          const rev = parseFloat(lead.revenue.toString().replace(/[^0-9]/g, '')) || 0;
+       if (lead.finalStatus === 'Đã chốt' && lead.totalAmount) {
+          const rev = parseFloat(String(lead.totalAmount).replace(/[^0-9]/g, '')) || 0;
           if (lead.date) {
              let period = '';
              if (lead.date.includes('/')) {
@@ -143,6 +143,33 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
       </div>
 
       <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+        <h3 className="text-sm font-medium text-gray-500 mb-4">Trạng thái Khách Hàng</h3>
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={statusData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+                nameKey="name"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {statusData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={getStatusColor(entry.name, index)} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col">
         <h3 className="text-sm font-medium text-gray-500 mb-4">Doanh thu theo Nguồn (Triệu VNĐ)</h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -172,7 +199,7 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
               <Tooltip formatter={(value: any, name: string) => [name === 'Tỷ lệ chốt (%)' ? `${value}%` : value, name]} />
               <Bar dataKey="Tỷ lệ chốt (%)" radius={[4, 4, 0, 0]}>
                 {staffPerformanceData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={['#3b82f6', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6'][index % 5]} />
+                  <Cell key={`cell-${index}`} fill={['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'][index % 5]} />
                 ))}
               </Bar>
             </BarChart>
@@ -187,7 +214,7 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
             <AreaChart data={revenueTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
                   <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                 </linearGradient>
               </defs>
@@ -195,7 +222,7 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
               <XAxis dataKey="name" tick={{ fontSize: 12 }} tickMargin={10} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip formatter={(value: any) => [`${parseFloat(value).toFixed(1)}M`, 'Doanh thu']} />
-              <Area type="monotone" dataKey="doanhThu" stroke="#10b981" fillOpacity={1} fill="url(#colorRevenue)" />
+              <Area type="monotone" dataKey="doanhThu" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -210,8 +237,16 @@ export default function OverviewCharts({ leads }: { leads: Lead[] }) {
               <XAxis dataKey="name" tick={{ fontSize: 12 }} tickMargin={10} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
-              <Bar dataKey="Tổng Lead" fill="#e5e7eb" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Đã chốt" fill="#111827" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Tổng Lead" radius={[4, 4, 0, 0]}>
+                 {branchData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#93c5fd', '#a7f3d0', '#fcd34d', '#fca5a5', '#c4b5fd'][index % 5]} />
+                 ))}
+              </Bar>
+              <Bar dataKey="Đã chốt" radius={[4, 4, 0, 0]}>
+                 {branchData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed'][index % 5]} />
+                 ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>

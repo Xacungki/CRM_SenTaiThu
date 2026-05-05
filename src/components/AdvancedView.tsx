@@ -252,53 +252,78 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
              )}
 
              {viewMode === 'tree' && (
-                <div className="max-w-4xl mx-auto space-y-6 py-4 px-2">
+                <div className="max-w-4xl mx-auto space-y-4 py-4 px-2">
                     {Object.entries(allowedLeads.reduce((acc, lead) => {
-                        const key = lead.source || 'Nguồn Khác';
+                        const key = lead.phone || 'Không có SĐT';
                         if (!acc[key]) acc[key] = [];
                         acc[key].push(lead);
                         return acc;
-                    }, {} as Record<string, Lead[]>)).map(([source, sourceLeads]) => (
-                        <div key={source} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-semibold text-gray-800 flex justify-between">
-                               <span>{source}</span>
-                               <span className="bg-white px-2 py-0.5 rounded text-xs border border-gray-200">{sourceLeads.length} Leads</span>
-                            </div>
-                            <div className="divide-y divide-gray-100">
-                                {sourceLeads.map(lead => (
-                                   <div key={lead.id} className="p-4 hover:bg-gray-50 transition-colors">
-                                      <div className="flex justify-between items-center cursor-pointer" onClick={() => onRowClick(lead)}>
-                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
-                                               {lead.fullName?.charAt(0) || '?'}
-                                            </div>
+                    }, {} as Record<string, Lead[]>)).map(([phone, customerLeads]) => (
+                        <details key={phone} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm group">
+                            <summary className="bg-gray-50 px-4 py-3 font-semibold text-gray-800 flex justify-between items-center cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none">
+                               <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+                                     {customerLeads[0].fullName?.charAt(0) || '?'}
+                                  </div>
+                                  <div>
+                                     <div className="text-gray-900 group-hover:text-blue-600 transition-colors uppercase">{customerLeads[0].fullName}</div>
+                                     <div className="text-sm font-normal text-gray-500">{phone}</div>
+                                  </div>
+                               </div>
+                               <div className="flex items-center gap-4">
+                                  <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold border border-blue-200">
+                                     {customerLeads.length} Đơn/Liệu trình
+                                  </span>
+                                  <div className="text-gray-400 group-open:rotate-180 transition-transform">
+                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                  </div>
+                               </div>
+                            </summary>
+                            <div className="divide-y divide-gray-100 border-t border-gray-200">
+                                {customerLeads.map(lead => (
+                                   <div key={lead.id} className="p-4 pl-12 hover:bg-gray-50 transition-colors">
+                                      <details className="group/item" open>
+                                         <summary className="flex justify-between items-center cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none">
                                             <div>
-                                               <div className="font-semibold text-gray-900 group-hover:text-blue-600">{lead.fullName} <span className="text-sm font-normal text-gray-500">- {lead.phone}</span></div>
-                                               <div className="text-xs text-gray-500 mt-0.5">{lead.date} • {lead.branch}</div>
-                                            </div>
-                                         </div>
-                                         <span className={`text-xs px-2 py-1 rounded-md border font-medium ${lead.finalStatus === 'Đã chốt' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                                            {lead.finalStatus || 'Đang xử lý'}
-                                         </span>
-                                      </div>
-                                      {/* Care History Sub-tree */}
-                                      <div className="mt-3 ml-11 pl-4 border-l-2 border-dashed border-gray-200 space-y-2">
-                                         {[1,2,3,4,5,6,7].map(num => {
-                                            const careData = (lead as any)?.[`care${num}`];
-                                            const careTime = (lead as any)?.[`time${num}`];
-                                            if (!careData) return null;
-                                            return (
-                                               <div key={num} className="relative text-sm text-gray-600">
-                                                  <span className="absolute -left-[21px] top-2 w-2 h-0.5 bg-gray-300"></span>
-                                                  <span className="font-medium text-gray-800">Lần {num}:</span> {careData} <span className="text-xs text-gray-400 ml-1">({careTime})</span>
+                                               <div className="font-medium text-gray-900 flex items-center gap-2">
+                                                  <Calendar className="w-4 h-4 text-gray-400" />
+                                                  Liệu trình: {lead.date} • <span className="text-blue-600">{lead.branch}</span>
                                                </div>
-                                            )
-                                         })}
-                                      </div>
+                                               <div className="text-xs text-gray-500 mt-1">Nguồn: {lead.source || 'N/A'} | CSKH: {lead.cskhStaff || 'Chưa phân công'}</div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                               <span className={`text-xs px-2 py-1 rounded-md border font-medium ${lead.finalStatus === 'Đã chốt' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                  {lead.finalStatus || 'Đang xử lý'}
+                                               </span>
+                                               <button onClick={(e) => { e.preventDefault(); onRowClick(lead); }} className="text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                                                  Chi tiết
+                                               </button>
+                                            </div>
+                                         </summary>
+                                         <div className="mt-4 ml-2 pl-6 border-l-2 border-dashed border-blue-200 space-y-3 relative">
+                                            {[1,2,3,4,5,6,7].map(num => {
+                                               const careData = (lead as any)?.[`care${num}`];
+                                               const careTime = (lead as any)?.[`time${num}`];
+                                               if (!careData) return null;
+                                               return (
+                                                  <div key={num} className="relative text-sm">
+                                                     <span className="absolute -left-[31px] top-1.5 w-3 h-3 rounded-full bg-white border-2 border-blue-400 shadow-sm z-10"></span>
+                                                     <div className="bg-white border border-gray-100 p-2 rounded-lg shadow-sm w-fit min-w-[200px]">
+                                                         <div className="font-semibold text-gray-800 text-xs text-blue-600 mb-0.5">Lần {num} ({careTime})</div>
+                                                         <div className="text-gray-700">{careData}</div>
+                                                     </div>
+                                                  </div>
+                                               )
+                                            })}
+                                            {![1].some(num => (lead as any)?.[`care${num}`]) && (
+                                               <div className="text-sm text-gray-400 italic py-1">Chưa có lịch sử chăm sóc</div>
+                                            )}
+                                         </div>
+                                      </details>
                                    </div>
                                 ))}
                             </div>
-                        </div>
+                        </details>
                     ))}
                     {[...allowedLeads].length === 0 && (
                         <div className="text-center text-gray-400 py-12">Không có dữ liệu Phả hệ</div>
@@ -308,43 +333,69 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
 
              {viewMode === 'gantt' && (
                 <div className="w-full h-full overflow-auto bg-white rounded-xl border border-gray-200 p-4">
-                    <div className="min-w-[800px]">
-                       <div className="flex border-b border-gray-200 pb-2 mb-4 font-semibold text-gray-600 text-sm">
-                          <div className="w-1/4">Khách hàng</div>
-                          <div className="w-3/4 flex justify-between px-4">
-                             <span>Ngày nhận</span>
-                             <span>Tiến trình chăm sóc</span>
-                             <span>Hiện tại</span>
+                    <div className="min-w-[900px]">
+                       <div className="flex border-b border-gray-200 pb-3 mb-4 font-semibold text-gray-600 text-sm bg-gray-50/80 sticky top-0 z-20">
+                          <div className="w-[200px] shrink-0 pl-2">Khách hàng</div>
+                          <div className="w-[100px] shrink-0 text-center">Tình trạng</div>
+                          <div className="flex-1 flex justify-between pr-4 items-center">
+                             <div className="text-xs font-normal text-gray-400">Tiến trình CSKH (Lần 1 &rarr; Lần 7)</div>
                           </div>
                        </div>
-                       <div className="space-y-4">
+                       <div className="space-y-6">
                           {allowedLeads.map(lead => {
-                             let careCount = 0;
-                             for(let i=1; i<=7; i++) { if((lead as any)[`care${i}`]) careCount++; }
-                             const progressPercent = lead.finalStatus === 'Đã chốt' ? 100 : lead.finalStatus?.includes('Không') ? 100 : Math.min(20 + careCount * 10, 95);
-                             const progressColor = lead.finalStatus === 'Đã chốt' ? 'bg-green-500' : lead.finalStatus?.includes('Không') ? 'bg-red-400' : 'bg-blue-500';
-                             
-                             const fDate = (() => {
-                                if (!lead.date) return '';
-                                if (lead.date.includes('T')) {
-                                   try { return new Date(lead.date).toLocaleDateString('en-GB'); } catch(e){}
+                             const cares = [];
+                             for(let i=1; i<=7; i++) {
+                                const cInfo = (lead as any)?.[`care${i}`];
+                                if (cInfo) {
+                                   cares.push({ step: i, data: cInfo, time: (lead as any)?.[`time${i}`] });
                                 }
-                                return lead.date;
-                             })();
-
+                             }
+                             
                              return (
-                                <div key={lead.id} className="flex items-center text-sm hover:bg-gray-50 py-2 rounded-lg cursor-pointer transition-colors" onClick={() => onRowClick(lead)}>
-                                   <div className="w-1/4 truncate pr-4 font-medium text-gray-800" title={lead.fullName}>
-                                      {lead.fullName} <span className="text-gray-400 text-xs font-normal">({lead.phone})</span>
-                                   </div>
-                                   <div className="w-3/4 flex items-center gap-4">
-                                      <span className="text-xs text-gray-500 w-20">{fDate}</span>
-                                      <div className="flex-1 bg-gray-100 h-3 rounded-full relative overflow-hidden">
-                                         <div className={`absolute top-0 left-0 h-full ${progressColor} transition-all duration-500 rounded-full`} style={{width: `${progressPercent}%`}}></div>
+                                <div key={lead.id} className="flex flex-col border-b border-gray-50 pb-4 mb-2 hover:bg-gray-50/50 p-2 rounded-lg transition-colors group">
+                                   <div className="flex items-center">
+                                      <div className="w-[200px] shrink-0 pr-4">
+                                         <div className="font-semibold text-gray-900 group-hover:text-blue-600 cursor-pointer" onClick={() => onRowClick(lead)} title={lead.fullName}>
+                                            {lead.fullName}
+                                         </div>
+                                         <div className="text-gray-500 text-xs mt-0.5">{lead.phone}</div>
                                       </div>
-                                      <span className="text-xs font-medium w-24 text-right truncate" title={lead.finalStatus || 'Đang xử lý'}>
-                                         {lead.finalStatus || 'Đang xử lý'}
-                                      </span>
+                                      <div className="w-[100px] shrink-0 flex justify-center">
+                                         <span className={`text-[10px] px-2 py-1 rounded-md font-medium text-center ${lead.finalStatus === 'Đã chốt' ? 'bg-green-100 text-green-700' : lead.finalStatus?.includes('Không') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                            {lead.finalStatus || 'Đang xử lý'}
+                                         </span>
+                                      </div>
+                                      <div className="flex-1 px-4 relative pt-1">
+                                         {/* Progress bar background line */}
+                                         <div className="absolute left-6 right-6 top-4 h-1 bg-gray-200 rounded-full z-0"></div>
+                                         
+                                         {/* The progressive line based on max care */}
+                                         {cares.length > 0 && (
+                                            <div 
+                                               className="absolute left-6 top-4 h-1 bg-blue-500 rounded-full z-0 transition-all duration-500" 
+                                               style={{ width: `calc(${(cares.length - 1) / 6 * 100}% - 0px)` }}
+                                            ></div>
+                                         )}
+
+                                         <div className="flex justify-between relative z-10 w-full h-8">
+                                            {[1, 2, 3, 4, 5, 6, 7].map((num, idx) => {
+                                               const care = cares.find(c => c.step === num);
+                                               const isDone = !!care;
+                                               return (
+                                                  <div key={num} className="flex flex-col items-center group/tooltip relative">
+                                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold bg-white ${isDone ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-300'}`}>
+                                                        {num}
+                                                     </div>
+                                                     {isDone && (
+                                                        <div className="absolute top-6 left-1/2 -translate-x-1/2 mt-1 hidden group-hover/tooltip:block bg-gray-900 text-white text-[11px] px-2 py-1.5 rounded shadow-lg whitespace-nowrap z-50">
+                                                           {care.time} <br/> <span className="font-semibold">{care.data}</span>
+                                                        </div>
+                                                     )}
+                                                  </div>
+                                               );
+                                            })}
+                                         </div>
+                                      </div>
                                    </div>
                                 </div>
                              )

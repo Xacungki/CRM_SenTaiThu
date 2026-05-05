@@ -129,7 +129,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     setLoading(true);
     toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });
     try {
-      if (lead?.id) {
+      if (lead?._rowIndex || lead?.id) {
         await gasService.updateLead(payload as Lead);
         gasService.addAuditLog({
            timestamp: new Date().toISOString(),
