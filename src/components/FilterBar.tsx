@@ -13,9 +13,10 @@ interface FilterState {
 
 interface FilterBarProps {
   onFilterChange: (filters: FilterState) => void;
+  branchRoles?: any[];
 }
 
-export default function FilterBar({ onFilterChange }: FilterBarProps) {
+export default function FilterBar({ onFilterChange, branchRoles = [] }: FilterBarProps) {
   const [filters, setFilters] = useState<FilterState>({
     searchTerm: '',
     source: '',
@@ -133,10 +134,9 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
               >
                 <option value="">Tất cả chi nhánh</option>
-                <option value="Sen Thái Thịnh">Sen Thái Thịnh</option>
-                <option value="Sen Đại Mỗ">Sen Đại Mỗ</option>
-                <option value="Sen Long Biên">Sen Long Biên</option>
-                <option value="Sen Vinh">Sen Vinh</option>
+                {branchRoles && branchRoles.filter(r => r.branch?.trim()).length > 0 ? (
+                   branchRoles.filter(r => r.branch?.trim()).map(r => <option key={r.branch} value={r.branch}>{r.branch}</option>)
+                ) : null}
               </select>
             </div>
             <div>

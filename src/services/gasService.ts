@@ -84,11 +84,17 @@ export const gasService = {
             return data as Lead;
          });
          
+         const branchRolesData = (json.branchRoles || []).map((r: any) => ({
+           branch: r['Chi nhánh'] || '',
+           adminAccount: r['Tài khoản Admin'] || '',
+           assignedStaff: r['Nhân viên được chỉ định'] || ''
+         }));
+         
          return {
             leads: leadsData,
             schema: json.schema || [],
             dropdowns: json.dropdowns || {},
-            branchRoles: json.branchRoles || []
+            branchRoles: branchRolesData
          };
       }
       return null;

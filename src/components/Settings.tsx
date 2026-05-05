@@ -189,7 +189,7 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in">
+    <div className="w-full space-y-6 animate-in fade-in">
       <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Cài đặt Hệ thống</h1>
       
       <Tabs defaultValue="connection" className="w-full">

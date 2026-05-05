@@ -112,8 +112,9 @@ export default function App() {
       
       // Smart Search Term match (ignore accents)
       if (filters.searchTerm) {
-        const removeAccents = (str: string) => {
-          return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const removeAccents = (str: any) => {
+          if (str == null) return '';
+          return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         };
         const term = removeAccents(filters.searchTerm);
         
@@ -141,10 +142,11 @@ export default function App() {
       // Time matching
       if (filters.timeFilter && lead.date) {
         try {
+          const dateStr = String(lead.date);
           // Parse lead date (assuming DD/MM/YYYY or YYYY-MM-DD or full date string)
-          let leadDateObj = new Date(lead.date);
-          if (lead.date.includes('/') && lead.date.split('/').length === 3) {
-            const parts = lead.date.split('/');
+          let leadDateObj = new Date(dateStr);
+          if (dateStr.includes('/') && dateStr.split('/').length >= 3) {
+            const parts = dateStr.split(' ')[0].split('/'); // Support DD/MM/YYYY HH:MM:ss
             // Check if parts[2] is year (YYYY)
             if (parts[2].length === 4) {
                leadDateObj = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
@@ -245,8 +247,20 @@ export default function App() {
     setIsFormOpen(true);
   };
 
-  const handleSave = () => {
-    setRefreshTrigger(prev => prev + 1);
+  const handleSave = (updatedLead?: Lead) => {
+    if (updatedLead) {
+       setAllLeads(prev => {
+          const index = prev.findIndex(l => l.id === updatedLead.id);
+          if (index >= 0) {
+             const newLeads = [...prev];
+             newLeads[index] = updatedLead;
+             return newLeads;
+          }
+          // If it's a new lead
+          return [updatedLead, ...prev];
+       });
+    }
+    // We already updated local state, no need to aggressively refresh and risk reverting to old cached data
   };
 
   const handleDeleteLead = async (lead: Lead) => {
@@ -309,7 +323,7 @@ export default function App() {
       onAddNew={handleOpenNew}
       headerActions={['dashboard', 'leads'].includes(currentRoute) ? (
         <div className="flex items-center gap-2">
-           <FilterBar onFilterChange={setFilters} />
+           <FilterBar onFilterChange={setFilters} branchRoles={branchRoles} />
            <button 
              onClick={fetchLeads}
              className={`px-3 py-2 flex items-center gap-2 bg-gray-900 text-white font-medium rounded-xl border border-gray-900 hover:bg-gray-800 shadow-sm text-sm ${loading ? 'opacity-50' : ''}`}
@@ -505,7 +519,8 @@ export default function App() {
                const success = await gasService.updateLead(updatedLead);
                if (success) {
                   toast.success('Chuyển trạng thái thành công!', {id: 'update-kanban'});
-                  setRefreshTrigger(p => p + 1);
+                  setAllLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+                  // We already updated local state, no need to aggressively fetch
                   gasService.addAuditLog({
                      timestamp: new Date().toISOString(),
                      user: currentUser.username,

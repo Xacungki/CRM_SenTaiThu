@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 interface LeadFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (lead?: Lead) => void;
   onDelete?: (lead: Lead) => Promise<void>;
   lead?: Lead | null;
   currentUser: CRMUser;
@@ -204,7 +204,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
         });
         toast.success("Đã tạo mới khách hàng thành công.", { id: 'save-lead' });
       }
-      onSave();
+      onSave(payload as Lead);
       onClose();
     } catch (error) {
       console.error(error);
@@ -505,35 +505,21 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                     </div>
                  </div>
 
-                 {(() => {
-                    let lastStatus = '';
-                    for (let i = 7; i >= 1; i--) {
-                        const careValue = (formData as any)[`care${i}`];
-                        if (careValue && careValue !== 'Trống') {
-                            lastStatus = careValue;
-                            break;
-                        }
-                    }
-                    if (lastStatus?.includes('Đã chốt') || formData.customerCount || formData.unitPrice || formData.totalAmount) {
-                      return (
-                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng khách</label>
-                            <input disabled={isCskhDisabled} name="customerCount" value={formData.customerCount || ''} onChange={handleChange} type="number" min="1" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 disabled:bg-gray-100 disabled:text-gray-500" placeholder="1" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Đơn giá (VNĐ)</label>
-                            <input disabled={isCskhDisabled} name="unitPrice" value={formData.unitPrice || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 disabled:bg-gray-100 disabled:text-gray-500" placeholder="250000" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Thành tiền (VNĐ)</label>
-                            <input disabled={isCskhDisabled} name="totalAmount" value={formData.totalAmount || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-gray-50 font-bold text-gray-900 disabled:text-gray-500" placeholder="Tổng tiền..." />
-                          </div>
-                       </div>
-                      );
-                    }
-                    return null;
-                 })()}
+                 {/* Removed the automatic hide and disabled props so it's always editable */}
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100 mt-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng khách</label>
+                      <input name="customerCount" value={formData.customerCount || ''} onChange={handleChange} type="number" min="1" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900" placeholder="1" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Đơn giá (VNĐ)</label>
+                      <input name="unitPrice" value={formData.unitPrice || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900" placeholder="250000" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Thành tiền (VNĐ)</label>
+                      <input name="totalAmount" value={formData.totalAmount || ''} onChange={handleChange} type="text" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-gray-50 font-bold text-gray-900" placeholder="Tổng tiền..." />
+                    </div>
+                 </div>
               </div>
             )}
 

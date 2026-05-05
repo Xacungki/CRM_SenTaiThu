@@ -39,9 +39,10 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
        
        if (timeFilter && l.date) {
          try {
-           let leadDateObj = new Date(l.date);
-           if (l.date.includes('/') && l.date.split('/').length === 3) {
-             const parts = l.date.split('/');
+           const dateStr = String(l.date);
+           let leadDateObj = new Date(dateStr);
+           if (dateStr.includes('/') && dateStr.split('/').length >= 3) {
+             const parts = dateStr.split(' ')[0].split('/');
              if (parts[2].length === 4) {
                 leadDateObj = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
              }
@@ -82,8 +83,9 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
        }
 
        if (searchTerm) {
-          const s = searchTerm.toLowerCase();
-          if (!l.fullName?.toLowerCase().includes(s) && !l.phone?.includes(s) && !l.note?.toLowerCase().includes(s)) {
+          const s = String(searchTerm).toLowerCase();
+          const matchFn = (val: any) => val != null ? String(val).toLowerCase().includes(s) : false;
+          if (!matchFn(l.fullName) && !matchFn(l.phone) && !matchFn(l.note)) {
              return false;
           }
        }
@@ -303,7 +305,7 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
              )}
 
              {viewMode === 'timeline' && (
-                <div className="max-w-4xl mx-auto space-y-8 py-4 px-2">
+                <div className="w-full space-y-8 py-4 px-2">
                     {/* Simplified Timeline View */}
                     {[...allowedLeads].sort((a, b) => {
                        // Sort by newest
@@ -362,7 +364,7 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
              )}
 
              {viewMode === 'tree' && (
-                <div className="max-w-4xl mx-auto space-y-4 py-4 px-2">
+                <div className="w-full space-y-4 py-4 px-2">
                     {Object.entries(allowedLeads.reduce((acc, lead) => {
                         const key = lead.phone || 'Không có SĐT';
                         if (!acc[key]) acc[key] = [];
