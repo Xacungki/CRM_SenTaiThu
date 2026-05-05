@@ -10,7 +10,7 @@ export const gasService = {
     if (!url) return { leads: getMockLeads(), schema: [] };
     
     try {
-      const response = await fetch(`${url}?action=GET_LEADS`);
+      const response = await fetch(`${url}?action=GET_LEADS&_t=${Date.now()}`);
       const json = await response.json();
       
       // Filter out empty rows (rows where essential fields like ID or Phone are missing)
@@ -33,15 +33,15 @@ export const gasService = {
     const url = getGasUrl();
     if (!url) return [];
     try {
-      const response = await fetch(`${url}?action=GET_USERS`);
+      const response = await fetch(`${url}?action=GET_USERS&_t=${Date.now()}`);
       const json = await response.json();
       if (json.status === 'success') {
         return json.data.map((r: any) => ({
-           username: r['Tài khoản'],
-           password: r['Mật khẩu'],
-           role: r['Vai trò'] as 'admin' | 'mkt' | 'sale',
-           branch: r['Chi nhánh'],
-           status: r['Trạng thái']
+           username: (r['Tài khoản'] || '').toString().trim(),
+           password: (r['Mật khẩu'] || '').toString().trim(),
+           role: (r['Vai trò'] || '').toString().trim().toLowerCase() as 'admin' | 'mkt' | 'sale',
+           branch: (r['Chi nhánh'] || '').toString().trim(),
+           status: (r['Trạng thái'] || '').toString().trim()
         }));
       }
       return [];
@@ -70,7 +70,7 @@ export const gasService = {
     const url = getGasUrl();
     if (!url) return [];
     try {
-      const response = await fetch(`${url}?action=GET_BRANCH_ROLES`);
+      const response = await fetch(`${url}?action=GET_BRANCH_ROLES&_t=${Date.now()}`);
       const json = await response.json();
       if (json.status === 'success') {
         return json.data.map((r: any) => ({
@@ -121,7 +121,7 @@ export const gasService = {
     const url = getGasUrl();
     if (!url) return [];
     try {
-      const response = await fetch(`${url}?action=GET_AUDIT_LOGS`);
+      const response = await fetch(`${url}?action=GET_AUDIT_LOGS&_t=${Date.now()}`);
       const json = await response.json();
       if (json.status === 'success') {
         return json.data;

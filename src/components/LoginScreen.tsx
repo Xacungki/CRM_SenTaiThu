@@ -19,7 +19,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     setLoading(true);
 
     try {
-      if (username === 'admin' && (password === 'admin' || password === 'admin123')) {
+      const trimmedUser = username.trim();
+      const trimmedPass = password.trim();
+
+      if (trimmedUser === 'admin' && (trimmedPass === 'admin' || trimmedPass === 'admin123')) {
          onLogin({ username: 'admin', role: 'admin', branch: 'ALL', status: 'Active' });
          toast.success('Đăng nhập với nhánh Admin quyền cao nhất.');
          return;
@@ -32,7 +35,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         return;
       }
 
-      const u = users.find(u => u.username === username && u.password === password);
+      const u = users.find(u => u.username === trimmedUser && u.password === trimmedPass);
       if (u) {
          if (u.status !== 'Active') {
             toast.error('Tài khoản đã bị khóa.');

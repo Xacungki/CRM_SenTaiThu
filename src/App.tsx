@@ -11,6 +11,7 @@ import FilterBar from './components/FilterBar';
 import Settings from './components/Settings';
 import LoginScreen from './components/LoginScreen';
 import UpcomingReminders from './components/UpcomingReminders';
+import AdvancedView from './components/AdvancedView';
 import { Lead, CRMUser } from './types';
 import { gasService } from './services/gasService';
 
@@ -88,7 +89,7 @@ export default function App() {
     localStorage.setItem('sen_crm_user', JSON.stringify(user));
   };
   
-  const [currentRoute, setCurrentRoute] = useState<'dashboard' | 'settings'>('dashboard');
+  const [currentRoute, setCurrentRoute] = useState<'dashboard' | 'settings' | 'advanced'>('dashboard');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -316,6 +317,17 @@ export default function App() {
 
       {currentRoute === 'settings' && (
         <Settings />
+      )}
+
+      {currentRoute === 'advanced' && (
+        <AdvancedView 
+           leads={allLeads} 
+           onRowClick={(lead) => {
+              setEditingLead(lead);
+              setIsFormOpen(true);
+           }}
+           currentUser={currentUser}
+        />
       )}
 
       <LeadFormModal 

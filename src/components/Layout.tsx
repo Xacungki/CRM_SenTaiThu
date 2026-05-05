@@ -6,8 +6,8 @@ interface LayoutProps {
   children: React.ReactNode;
   onAddNew?: () => void;
   headerActions?: React.ReactNode;
-  currentRoute: 'dashboard' | 'settings';
-  onNavigate: (route: 'dashboard' | 'settings') => void;
+  currentRoute: 'dashboard' | 'settings' | 'advanced';
+  onNavigate: (route: 'dashboard' | 'settings' | 'advanced') => void;
   currentUser: CRMUser;
   onLogout: () => void;
 }
@@ -51,6 +51,13 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
             label="Tổng quan Data" 
             active={currentRoute === 'dashboard'} 
             onClick={() => { onNavigate('dashboard'); setSidebarOpen(false); }}
+          />
+
+          <NavItem 
+            icon={<div className="w-5 h-5 flex items-center justify-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg></div>} 
+            label="Chế độ Xem Nâng Cao" 
+            active={currentRoute === 'advanced'} 
+            onClick={() => { onNavigate('advanced'); setSidebarOpen(false); }}
           />
           
           {(currentUser.role === 'admin' || currentUser.role === 'mkt') && (

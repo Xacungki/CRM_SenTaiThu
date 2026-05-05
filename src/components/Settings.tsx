@@ -732,7 +732,10 @@ function doPost(e) {
     const payload = body.data; 
     
     if (action === 'UPDATE_SCHEMA') {
-      sheet.getRange(2, 1, 1, payload.headers.length).setValues([payload.headers]);
+      sheet.getRange(2, 1, 1, sheet.getMaxColumns()).clearContent();
+      if (payload.headers && payload.headers.length > 0) {
+        sheet.getRange(2, 1, 1, payload.headers.length).setValues([payload.headers]);
+      }
       SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }

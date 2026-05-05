@@ -67,6 +67,20 @@ export default function LeadFormModal({ isOpen, onClose, onSave, lead, currentUs
              newData.cskhStaff = '';
           }
        }
+       if (name.startsWith('care')) {
+         const num = name.replace('care', '');
+         if (!isNaN(Number(num))) {
+            const timeField = `time${num}`;
+            if (value) {
+               // Update time to current
+               const now = new Date();
+               // format as DD/MM/YYYY HH:mm:ss
+               newData[timeField] = now.toLocaleString('en-GB');
+            } else {
+               newData[timeField] = '';
+            }
+         }
+       }
        return newData;
     });
   };
