@@ -30,9 +30,7 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
   // Filter based on role and search
   const allowedLeads = useMemo(() => {
     return leads.filter(l => {
-       if (currentUser.role === 'sale' && currentUser.branch !== 'ALL') {
-          if (l.branch !== currentUser.branch) return false;
-       }
+       // Removed branch restriction for all roles to allow viewing all data
        if (branchFilter && l.branch !== branchFilter) {
           return false;
        }

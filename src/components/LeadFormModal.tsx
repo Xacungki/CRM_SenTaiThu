@@ -163,6 +163,20 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     }
 
     const payload = { ...formData };
+    
+    // Auto calculate last update time for lastCareStatus
+    let lastStatusTime = '';
+    for (let i = 7; i >= 1; i--) {
+        const careValue = (payload as any)[`care${i}`];
+        const timeValue = (payload as any)[`time${i}`];
+        if (careValue && careValue !== 'Trống') {
+            lastStatusTime = timeValue || getCurrentFormattedTime();
+            break;
+        }
+    }
+    if (lastStatusTime) {
+      payload.lastCareStatus = lastStatusTime;
+    }
 
     setLoading(true);
     toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });

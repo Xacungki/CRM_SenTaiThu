@@ -105,10 +105,7 @@ export default function App() {
     return allLeads.filter(lead => {
       if (!filters) return true;
       
-      // If user is not admin, limit visible leads
-      if (currentUser?.role === 'sale' && currentUser.branch !== 'ALL') {
-         if (lead.branch !== currentUser.branch) return false;
-      }
+      // Removed branch restriction for all roles to allow viewing all data
       
       // Smart Search Term match (ignore accents)
       if (filters.searchTerm) {
@@ -501,6 +498,7 @@ export default function App() {
                       updatedLead.care1 = status;
                       updatedLead.time1 = timeStr;
                    }
+                   updatedLead.lastCareStatus = timeStr;
                };
 
                if (newGroup === 'Đã chốt') {

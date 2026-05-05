@@ -362,7 +362,7 @@ export const gasService = {
 function mapSheetRowToLead(row: any): Lead {
   return {
     ...row,
-    _rowIndex: row._rowIndex,
+    _rowIndex: row._rowIndex || row.rowIndex || row.rowNumber,
     id: formatPossibleDate(row['ID']) || '',
     date: formatPossibleDate(row['Ngày '] || row['Ngày']) || '',
     fullName: row['Họ và tên'] || '',
@@ -400,8 +400,11 @@ function mapSheetRowToLead(row: any): Lead {
 function mapLeadToSheetRow(lead: Partial<Lead>): any {
   const baseMapping = {
     _rowIndex: lead._rowIndex,
+    rowIndex: lead._rowIndex,
+    rowNumber: lead._rowIndex,
     'ID': lead.id,
     'Ngày ': lead.date,
+    'Ngày': lead.date,
     'Họ và tên': lead.fullName,
     'Số điện thoại': lead.phone,
     'Chi nhánh': lead.branch,
