@@ -82,7 +82,7 @@ export const gasService = {
          // Parse leads like getLeads does
          const leadsData = (json.leads || []).map((row: any) => {
             const data: any = { 
-               _rowIndex: row._rowIndex || row.rowIndex || row.rowNumber 
+               _rowIndex: row._rowIndex || row.rowIndex || row.rowNumber || row.row 
             };
             Object.keys(row).forEach(key => {
               if (key !== '_rowIndex') {
@@ -346,7 +346,7 @@ export const gasService = {
         headers: {
           'Content-Type': 'text/plain',
         },
-        body: JSON.stringify({ action: 'UPDATE', data: payload })
+        body: JSON.stringify({ action: 'UPDATE', row: lead._rowIndex || payload._rowIndex, id: lead.id, data: payload })
       });
       const json = await response.json();
       return json.status === 'success';
@@ -365,7 +365,7 @@ export const gasService = {
          headers: {
            'Content-Type': 'text/plain',
          },
-         body: JSON.stringify({ action: 'DELETE', data: { _rowIndex: lead._rowIndex } })
+         body: JSON.stringify({ action: 'DELETE', row: lead._rowIndex, id: lead.id, data: { _rowIndex: lead._rowIndex, row: lead._rowIndex, 'ID': lead.id } })
        });
        const json = await response.json();
        return json.status === 'success';
@@ -380,7 +380,7 @@ export const gasService = {
 function mapSheetRowToLead(row: any): Lead {
   return {
     ...row,
-    _rowIndex: row._rowIndex || row.rowIndex || row.rowNumber,
+    _rowIndex: row._rowIndex || row.rowIndex || row.rowNumber || row.row,
     id: formatPossibleDate(row['ID']) || '',
     date: formatPossibleDate(row['Ngày '] || row['Ngày']) || '',
     fullName: row['Họ và tên'] || '',
@@ -421,6 +421,7 @@ function mapLeadToSheetRow(lead: Partial<Lead>): any {
     _rowIndex: lead._rowIndex,
     rowIndex: lead._rowIndex,
     rowNumber: lead._rowIndex,
+    row: lead._rowIndex,
     'ID': lead.id,
     'Ngày ': protectDateStr(lead.date),
     'Ngày': protectDateStr(lead.date),

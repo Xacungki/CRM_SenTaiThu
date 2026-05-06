@@ -182,7 +182,12 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });
     try {
       if (lead?._rowIndex || lead?.id) {
-        await gasService.updateLead(payload as Lead);
+        const success = await gasService.updateLead(payload as Lead);
+        if (!success) {
+           toast.error("Lỗi: Không thể cập nhật dữ liệu trên hệ thống. Hãy thử lại.", { id: 'save-lead' });
+           setLoading(false);
+           return;
+        }
         gasService.addAuditLog({
            timestamp: new Date().toISOString(),
            user: currentUser.username,
@@ -206,7 +211,12 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
               }
            }
         }
-        await gasService.createLead(payload);
+        const success = await gasService.createLead(payload);
+        if (!success) {
+           toast.error("Lỗi: Không thể thêm mới dữ liệu trên hệ thống. Hãy thử lại.", { id: 'save-lead' });
+           setLoading(false);
+           return;
+        }
         gasService.addAuditLog({
            timestamp: new Date().toISOString(),
            user: currentUser.username,
@@ -272,7 +282,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
           </button>
         </div>
 
-        <form id="lead-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="flex flex-col h-full">
+        <form id="lead-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="flex flex-col flex-1 min-h-0">
           <div className="flex overflow-x-auto border-b border-gray-200 px-6 hide-scrollbar flex-shrink-0">
             <button type="button" onClick={() => setActiveTab('info')} className={activeTab === 'info' ? activeTabClass : inactiveTabClass}>Thông tin chung</button>
             <button type="button" onClick={() => setActiveTab('care')} className={activeTab === 'care' ? activeTabClass : inactiveTabClass}>Lịch sử CSKH</button>
