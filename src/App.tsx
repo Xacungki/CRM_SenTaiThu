@@ -14,9 +14,11 @@ import UpcomingReminders from './components/UpcomingReminders';
 import AdvancedView from './components/AdvancedView';
 import { Lead, CRMUser } from './types';
 import { gasService } from './services/gasService';
+import { firebaseService } from './services/firebaseService';
 
-import { Toaster } from '@/components/ui/sonner';
-import { toast } from 'sonner';
+import { syncService } from './services/syncService';
+
+import { Toaster, toast } from 'sonner';
 import { Download, RefreshCcw } from 'lucide-react';
 
 const OverviewCharts = React.lazy(() => import('./components/OverviewCharts'));
@@ -118,9 +120,13 @@ export default function App() {
 
   const filteredLeads = useMemo(() => {
     return allLeads.filter(lead => {
-      if (!filters) return true;
+      // RBAC: Sale only sees their branch
+      if (currentUser?.role === 'sale' && currentUser.branch !== 'ALL') {
+          const userBranches = currentUser.branch.split(',').map(b => b.trim());
+          if (!lead.branch || !userBranches.includes(lead.branch)) return false;
+      }
       
-      // Removed branch restriction for all roles to allow viewing all data
+      if (!filters) return true;
       
       // Smart Search Term match (ignore accents)
       if (filters.searchTerm) {
@@ -211,31 +217,32 @@ export default function App() {
   const fetchLeads = async () => {
     if (!currentUser) return;
     setLoading(true);
-    toast.loading('Đang đồng bộ dữ liệu từ Google Sheets...', { id: 'sync-leads' });
+    toast.loading('Đang đồng bộ dữ liệu...', { id: 'sync-leads' });
     try {
-      // First try to fetch all data in one go (requires updated AppScript)
-      const appData = await gasService.getAppData();
-      if (appData) {
-         setAllLeads(appData.leads);
-         setSchemaHeaders(appData.schema);
-         setBranchRoles(appData.branchRoles);
-         setDropdowns(appData.dropdowns);
-         toast.success(`Đã cập nhật ${appData.leads.length} bản ghi thành công.`, { id: 'sync-leads' });
-      } else {
-         // Fallback to sequential fetching for old AppScript versions (no Promise.all to avoid throttling)
-         const leadsData = await gasService.getLeads();
-         setAllLeads(leadsData.leads);
-         setSchemaHeaders(leadsData.schema);
+         const fbLeads = await firebaseService.getLeads();
          
-         const fetchedBranchRoles = await gasService.getBranchRoles();
-         setBranchRoles(fetchedBranchRoles);
+         // Fallback to Google Sheets if Firebase is empty, or just use App Script for metadata
+         const appData = await gasService.getAppData();
          
-         const fetchedDropdowns = await gasService.getDropdowns();
-         setDropdowns(fetchedDropdowns);
-         toast.success(`Đã cập nhật ${leadsData.leads.length} bản ghi thành công.`, { id: 'sync-leads' });
-      }
+         if (appData) {
+            setAllLeads(fbLeads.length > 0 ? fbLeads : appData.leads || []);
+            setSchemaHeaders(appData.schema);
+            setBranchRoles(appData.branchRoles);
+            setDropdowns(appData.dropdowns);
+         } else {
+            const leadsData = await gasService.getLeads();
+            setAllLeads(fbLeads.length > 0 ? fbLeads : leadsData.leads || []); // use fbLeads if exist
+            setSchemaHeaders(leadsData.schema);
+            
+            const fetchedBranchRoles = await gasService.getBranchRoles();
+            setBranchRoles(fetchedBranchRoles);
+            
+            const fetchedDropdowns = await gasService.getDropdowns();
+            setDropdowns(fetchedDropdowns);
+         }
+         toast.success(`Đã cập nhật dữ liệu thành công.`, { id: 'sync-leads' });
     } catch (error) {
-      toast.error('Lỗi khi tải dữ liệu từ Google Sheets.', { id: 'sync-leads' });
+      toast.error('Lỗi khi tải dữ liệu.', { id: 'sync-leads' });
     } finally {
       setLoading(false);
     }
@@ -280,13 +287,13 @@ export default function App() {
 
   const handleDeleteLead = async (lead: Lead) => {
     toast.loading('Đang xóa khách hàng...', { id: 'delete-lead' });
-    const success = await gasService.deleteLead(lead);
+    const success = await syncService.deleteLead(lead);
     if (success) {
       toast.success('Đã xóa khách hàng thành công.', { id: 'delete-lead' });
       setIsFormOpen(false);
       setRefreshTrigger(prev => prev + 1);
       
-      gasService.addAuditLog({
+      syncService.addAuditLog({
          timestamp: new Date().toISOString(),
          user: currentUser.username,
          action: 'DELETE',
@@ -372,7 +379,7 @@ export default function App() {
                            if (!formattedLead.phone) continue;
 
                            // Duplicate check
-                           const isDuplicate = allLeads.some(l => l.phone === formattedLead.phone);
+                           const isDuplicate = allLeads.some(l => l.phone === formattedLead.phone && l.branch === formattedLead.branch);
                            if (isDuplicate) {
                               duplicateCount++;
                               continue;
@@ -381,12 +388,12 @@ export default function App() {
                         }
 
                         if (duplicateCount > 0) {
-                           toast.warning(`Đã bỏ qua ${duplicateCount} số điện thoại trùng lặp.`);
+                           toast.warning(`Đã bỏ qua ${duplicateCount} số điện thoại trùng lặp trong cùng chi nhánh.`);
                         }
 
                         if (newLeads.length > 0) {
                            toast.loading(`Đang nạp ${newLeads.length} leads...`, {id: 'import-csv'});
-                           const success = await gasService.importLeads(newLeads);
+                           const success = await syncService.importLeads(newLeads);
                            if (success) {
                               toast.success(`Nhập thành công ${newLeads.length} leads!`, {id: 'import-csv'});
                               setRefreshTrigger(prev => prev + 1);
@@ -520,12 +527,12 @@ export default function App() {
                }
                
                toast.loading('Đang cập nhật trạng thái...', {id: 'update-kanban'});
-               const success = await gasService.updateLead(updatedLead);
+               const success = await syncService.updateLead(updatedLead);
                if (success) {
                   toast.success('Chuyển trạng thái thành công!', {id: 'update-kanban'});
                   setAllLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
                   // We already updated local state, no need to aggressively fetch
-                  gasService.addAuditLog({
+                  syncService.addAuditLog({
                      timestamp: new Date().toISOString(),
                      user: currentUser.username,
                      action: 'UPDATE',
@@ -554,7 +561,7 @@ export default function App() {
         dropdowns={dropdowns}
       />
     </Layout>
-    <Toaster />
+    <Toaster position="top-right" richColors />
     </>
   );
 }

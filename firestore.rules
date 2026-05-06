@@ -1,0 +1,109 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 0.1 Primitives
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function getUserEmail() { return request.auth.token.email; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Admin lookup - We trust the userRoles collection where the document ID is the user UID
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/userRoles/$(request.auth.uid)) && getUserDoc().role == 'admin';
+    }
+
+    function isMkt() {
+      return isSignedIn() && exists(/databases/$(database)/documents/userRoles/$(request.auth.uid)) && getUserDoc().role == 'mkt';
+    }
+
+    function isSale() {
+      return isSignedIn() && exists(/databases/$(database)/documents/userRoles/$(request.auth.uid)) && getUserDoc().role == 'sale';
+    }
+
+    // --- Entity Validation --- //
+
+    function isValidUserRole(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+             data.email is string && data.email.size() >= 5 && data.email.size() <= 100 &&
+             data.role is string && (data.role == 'admin' || data.role == 'mkt' || data.role == 'sale') &&
+             (!('branch' in data) || (data.branch is string && data.branch.size() <= 100)) &&
+             (!('status' in data) || (data.status is string && (data.status == 'Active' || data.status == 'Inactive')));
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasAll(['fullName', 'phone']) &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+             data.phone is string && data.phone.size() >= 8 && data.phone.size() <= 15 &&
+             (!('id' in data) || (data.id is string && data.id.size() <= 100)) &&
+             (!('branch' in data) || (data.branch is string && data.branch.size() <= 100)) &&
+             (!('creatorEmail' in data) || (data.creatorEmail is string && data.creatorEmail.size() <= 100)) &&
+             (!('isDeleted' in data) || (data.isDeleted is bool)) &&
+             (!('version' in data) || (data.version is number)) &&
+             (!('createdAt' in data) || (data.createdAt is timestamp)) &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp));
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['timestamp', 'user', 'action', 'details', 'createdAt']) &&
+             data.timestamp is string && data.timestamp.size() <= 50 &&
+             data.user is string && data.user.size() <= 50 &&
+             data.action is string && data.action.size() <= 20 &&
+             data.details is string && data.details.size() <= 500 &&
+             data.createdAt is timestamp &&
+             (!('targetId' in data) || (data.targetId is string && data.targetId.size() <= 128)) &&
+             (!('targetName' in data) || (data.targetName is string && data.targetName.size() <= 100));
+    }
+
+    // --- Path Rules --- //
+
+    match /userRoles/{userId} {
+      allow read: if isSignedIn(); // Users need to read to know roles and branches
+      allow create: if isAdmin() && isValidUserRole(incoming()) && isValidId(userId);
+      // Let people change their own status or admins change any
+      allow update: if (isAdmin() || request.auth.uid == userId) && isValidUserRole(incoming());
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    match /leads/{leadId} {
+      // 1. Read: Everyone can read
+      allow read: if isSignedIn();
+      
+      // 2. Create: Anyone can create leads, but they must set correct creation fields
+      allow create: if isSignedIn() && isValidId(leadId) && isValidLead(incoming()) &&
+                    incoming().createdAt == request.time &&
+                    incoming().creatorEmail == getUserEmail();
+      
+      // 3. Update: 
+      allow update: if isSignedIn() && isValidId(leadId) && isValidLead(incoming()) &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().creatorEmail == existing().creatorEmail &&
+                    incoming().updatedAt == request.time;
+      
+      // 4. Delete: Admins or the creator can delete
+      allow delete: if isSignedIn() && isValidId(leadId) && (isAdmin() || existing().creatorEmail == getUserEmail());
+    }
+
+    match /auditLogs/{logId} {
+      // 1. Read: Only admins
+      allow read: if isAdmin();
+      
+      // 2. Create: Anyone can create audit logs
+      allow create: if isSignedIn() && isValidId(logId) && isValidAuditLog(incoming()) &&
+                    incoming().createdAt == request.time;
+      
+      // 3. Update/Delete: Immutable after creation
+      allow update, delete: if false;
+    }
+  }
+}

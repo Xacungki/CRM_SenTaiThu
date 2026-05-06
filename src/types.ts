@@ -23,6 +23,8 @@ export interface AuditEvent {
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'SYNC';
   details: string;
   targetId?: string;
+  targetName?: string;
+  branch?: string;
 }
 
 export interface SyncResponse {
@@ -72,6 +74,13 @@ export interface Lead {
   cskhNote?: string; // Cột: Nội dung CSKH
   nextCareDate?: string; // Cột: Ngày hẹn CSKH
   nextCareNote?: string; // Cột: Nội dung nhắc nhở
+
+  // Metadata
+  creatorEmail?: string;
+  isDeleted?: boolean;
+  version?: number;
+  createdAt?: any;
+  updatedAt?: any;
 
   // Dynamic Keys
   [key: string]: any;

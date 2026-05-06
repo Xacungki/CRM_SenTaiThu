@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Copy, CheckCircle, ExternalLink, AlertTriangle, Plus, Trash2, Globe } from 'lucide-react';
+import { Save, Copy, CheckCircle, ExternalLink, AlertTriangle, Plus, Trash2, Globe, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { gasService } from '../services/gasService';
+import { firebaseService } from '../services/firebaseService';
 import { CRMUser, BranchRole } from '../types';
 
 interface SettingsProps {
@@ -47,9 +48,9 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
     setLoadingAudit(true);
     try {
        const [u, br, logs] = await Promise.all([
-          gasService.getUsers(),
+          firebaseService.getUsers(), // Fallback to spreadsheet for editing users
           gasService.getBranchRoles(),
-          gasService.getAuditLogs()
+          firebaseService.getAuditLogs()
        ]);
        setUsers(u);
        setBranchRoles(br);
@@ -168,24 +169,42 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
      saveBranchRolesToGas(newRoles);
   };
 
-  const handleAddUser = () => {
-     const newUsers = [...users, { username: 'new_user', password: '123', role: 'sale', branch: 'Chi nhánh', status: 'Active' as any }];
-     setUsers(newUsers);
-     saveUsersToGas(newUsers);
+  const handleAddUser = async () => {
+     const newUser: CRMUser = { username: 'new_user', password: '123', role: 'sale', branch: 'ALL', status: 'Active' };
+     toast.loading('Đang thêm tài khoản...', { id: 'save-user' });
+     const ok = await firebaseService.saveUser(newUser);
+     if (ok) {
+         toast.success('Đã thêm tài khoản.', { id: 'save-user' });
+         fetchData();
+     } else {
+         toast.error('Lỗi khi thêm.', { id: 'save-user' });
+     }
   };
 
-  const handleUpdateUser = (index: number, field: keyof CRMUser, val: string) => {
+  const handleUpdateUser = async (index: number, field: keyof CRMUser, val: string) => {
      const newUsers = [...users];
      newUsers[index] = { ...newUsers[index], [field]: val };
      setUsers(newUsers);
-     saveUsersToGas(newUsers);
+     
+     toast.loading('Đang cập nhật...', { id: 'update-user' });
+     const ok = await firebaseService.saveUser(newUsers[index]);
+     if (ok) toast.success('Đã cập nhật', { id: 'update-user' });
+     else toast.error('Lỗi cập nhật', { id: 'update-user' });
   };
 
-  const handleDeleteUser = (index: number) => {
+  const handleDeleteUser = async (index: number) => {
      if(!window.confirm("Xóa tài khoản này?")) return;
+     const user = users[index];
+     
+     if ((user as any).id) {
+         toast.loading('Đang xóa...', { id: 'del-user' });
+         const ok = await firebaseService.deleteUser((user as any).id);
+         if (ok) toast.success('Đã xóa', { id: 'del-user' });
+         else toast.error('Lỗi xóa', { id: 'del-user' });
+     }
+     
      const newUsers = users.filter((_, i) => i !== index);
      setUsers(newUsers);
-     saveUsersToGas(newUsers);
   };
 
   return (
@@ -265,13 +284,31 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                   </p>
                 </div>
                 
-                <div className="pt-2">
+                <div className="pt-2 flex flex-wrap gap-3">
                   <Button 
                     onClick={handleSave}
                     className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white px-8"
                   >
                     {saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                     {saved ? 'Đã lưu' : 'Lưu cấu hình'}
+                  </Button>
+
+                  <Button 
+                    variant="outline"
+                    onClick={async () => {
+                       if (!window.confirm("Bắt đầu đồng bộ 2 chiều (Kéo dữ liệu mới từ Sheets xuống Database)? Dữ liệu sẽ được cập nhật/thêm mới dựa theo SĐT và Chi nhánh.")) return;
+                       toast.loading('Đang đồng bộ Data...', {id: 'migrate'});
+                       const result = await firebaseService.migrateFromGas();
+                       if (result.success) {
+                           toast.success(`Đồng bộ thành công ${result.count} khách hàng!`, {id: 'migrate'});
+                       } else {
+                           toast.error(`Đồng bộ thất bại: ${result.error}`, {id: 'migrate'});
+                       }
+                    }}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-50 px-8"
+                  >
+                    <Database className="w-4 h-4" />
+                    Đồng bộ từ Google Sheets
                   </Button>
                 </div>
               </div>
@@ -604,40 +641,53 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                  <div className="relative pl-6 border-l-2 border-gray-200 space-y-8">
                    {auditLogs.filter(log => {
                       if (!auditMonth) return true;
-                      if (!log['Thời gian']) return false;
+                      const timeStr = log.timestamp || log['Thời gian'];
+                      if (!timeStr) return false;
                       // auditMonth format is YYYY-MM
                       try {
-                        const date = new Date(log['Thời gian']);
+                        const date = new Date(timeStr);
                         const m = date.getMonth() + 1;
                         const y = date.getFullYear();
                         const mm = m < 10 ? '0' + m : m.toString();
                         return `${y}-${mm}` === auditMonth;
                       } catch(e) { return true; }
-                   }).map((log, i) => (
+                   }).map((log, i) => {
+                     const isCreate = (log.action || log['Hành động']) === 'CREATE';
+                     const isUpdate = (log.action || log['Hành động']) === 'UPDATE';
+                     const userStr = log.user || log['Người dùng'];
+                     const targetNameStr = log.targetName || log['Tên khách hàng'] || 'thực thể';
+                     const actionLabel = isCreate ? 'đã tạo mới' : isUpdate ? 'đã cập nhật' : 'đã thao tác';
+                     const targetIdStr = log.targetId || log['Đối tượng ID'];
+                     const branchStr = log.branch || log['Chi nhánh'];
+                     const timeStr = log.timestamp || log['Thời gian'];
+                     const detailsStr = log.details || log['Chi tiết'];
+                     const actionRaw = log.action || log['Hành động'];
+
+                     return (
                      <div key={i} className="relative">
-                       <span className={`absolute -left-[33px] top-1 h-4 w-4 rounded-full ring-4 ring-white ${log['Hành động'] === 'CREATE' ? 'bg-blue-500' : log['Hành động'] === 'UPDATE' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                       <span className={`absolute -left-[33px] top-1 h-4 w-4 rounded-full ring-4 ring-white ${isCreate ? 'bg-blue-500' : isUpdate ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-1">
                          <div className="font-medium text-gray-900 text-sm">
-                           {log['Người dùng']} 
-                           <span className="font-normal text-gray-500 mx-1">{log['Hành động'] === 'CREATE' ? 'đã tạo mới' : log['Hành động'] === 'UPDATE' ? 'đã cập nhật' : 'đã thao tác'} với</span> 
-                           <span className="text-gray-900 font-medium">{log['Tên khách hàng']}</span>
-                           {log['Đối tượng ID'] && <span className="text-gray-400 text-xs ml-1">(ID: {log['Đối tượng ID']})</span>}
+                           {userStr} 
+                           <span className="font-normal text-gray-500 mx-1">{actionLabel} với</span> 
+                           <span className="text-gray-900 font-medium">{targetNameStr}</span>
+                           {targetIdStr && <span className="text-gray-400 text-xs ml-1">(ID: {targetIdStr})</span>}
                          </div>
                          <div className="text-xs text-gray-400 whitespace-nowrap">
-                           {log['Thời gian'] ? new Date(log['Thời gian']).toLocaleString('vi-VN') : ''}
+                           {timeStr ? new Date(timeStr).toLocaleString('vi-VN') : ''}
                          </div>
                        </div>
                        <div className="text-sm text-gray-600 bg-white border border-gray-100 p-3 rounded-lg shadow-sm">
                          <div className="flex items-center gap-2 mb-2">
-                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${log['Hành động'] === 'CREATE' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}`}>
-                             {log['Hành động']}
+                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${isCreate ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}`}>
+                             {actionRaw}
                            </span>
-                           {log['Chi nhánh'] && <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-600 uppercase tracking-wider">{log['Chi nhánh']}</span>}
+                           {branchStr && <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-600 uppercase tracking-wider">{branchStr}</span>}
                          </div>
-                         {log['Chi tiết']}
+                         {detailsStr}
                        </div>
                      </div>
-                   ))}
+                   )})}
                    {auditLogs.length === 0 && (
                      <div className="text-center py-8 text-gray-500 text-sm">Chưa có lịch sử hoạt động</div>
                    )}

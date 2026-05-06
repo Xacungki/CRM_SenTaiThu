@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "Represents a marketing lead or customer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phone": { "type": "string" },
+        "branch": { "type": "string" },
+        "source": { "type": "string" },
+        "adsStaff": { "type": "string" },
+        "note": { "type": "string" },
+        "dataType": { "type": "string" },
+        "cskhStaff": { "type": "string" },
+        "care1": { "type": "string" },
+        "time1": { "type": "string" },
+        "care2": { "type": "string" },
+        "time2": { "type": "string" },
+        "care3": { "type": "string" },
+        "time3": { "type": "string" },
+        "care4": { "type": "string" },
+        "time4": { "type": "string" },
+        "care5": { "type": "string" },
+        "time5": { "type": "string" },
+        "care6": { "type": "string" },
+        "time6": { "type": "string" },
+        "care7": { "type": "string" },
+        "time7": { "type": "string" },
+        "lastCareStatus": { "type": "string" },
+        "finalStatus": { "type": "string" },
+        "customerCount": { "type": "number" },
+        "unitPrice": { "type": "string" },
+        "totalAmount": { "type": "string" },
+        "cskhNote": { "type": "string" },
+        "nextCareDate": { "type": "string" },
+        "nextCareNote": { "type": "string" },
+        "createdAt": { "type": "number", "description": "Firestore timestamp" },
+        "updatedAt": { "type": "number", "description": "Firestore timestamp" },
+        "isDeleted": { "type": "boolean" },
+        "version": { "type": "number" },
+        "ownerId": { "type": "string" },
+        "creatorEmail": { "type": "string" }
+      },
+      "required": ["fullName", "phone"]
+    },
+    "UserRole": {
+      "title": "User",
+      "description": "User roles and permissions",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "mkt", "sale"] },
+        "branch": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] }
+      },
+      "required": ["email", "role"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Log of actions performed in the CRM",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string" },
+        "user": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetName": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["timestamp", "user", "action", "details"]
+    }
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Stores all marketing and sales leads"
+    },
+    "/userRoles/{userId}": {
+      "schema": { "$ref": "#/entities/UserRole" },
+      "description": "Stores user roles and branch access controls"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Stores immutable audit logs"
+    }
+  }
+}

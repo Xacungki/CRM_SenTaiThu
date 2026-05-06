@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, Clock } from 'lucide-react';
 import { Lead, CRMUser } from '../types';
 import { gasService } from '../services/gasService';
+import { firebaseService } from '../services/firebaseService';
+import { syncService } from '../services/syncService';
 import { toast } from 'sonner';
 
 interface LeadFormModalProps {
@@ -31,12 +33,21 @@ const getCurrentFormattedTime = () => {
 export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead, currentUser, schema, allLeads = [], branchRoles = [], dropdowns = {} }: LeadFormModalProps) {
   const [formData, setFormData] = useState<Partial<Lead>>({});
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'info' | 'care' | 'billing' | 'advanced'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'care' | 'billing' | 'advanced' | 'history'>('info');
   const [users, setUsers] = useState<CRMUser[]>([]);
+  const [leadHistory, setLeadHistory] = useState<any[]>([]);
 
   useEffect(() => {
      if (isOpen) gasService.getUsers().then(setUsers);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (activeTab === 'history' && lead?.id) {
+       firebaseService.getAuditLogs().then(logs => {
+          setLeadHistory(logs.filter(log => log.targetId === (lead as any).id));
+       }).catch(() => toast.error('Không thể tải lịch sử', { id: 'history-fail' }));
+    }
+  }, [activeTab, lead?.id]);
 
   useEffect(() => {
     if (lead) {
@@ -179,16 +190,16 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     }
 
     setLoading(true);
-    toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });
+    toast.loading('Đang ghi dữ liệu vào Firebase (và đồng bộ Sheets)...', { id: 'save-lead' });
     try {
       if (lead?._rowIndex || lead?.id) {
-        const success = await gasService.updateLead(payload as Lead);
+        const success = await syncService.updateLead(payload as Lead);
         if (!success) {
            toast.error("Lỗi: Không thể cập nhật dữ liệu trên hệ thống. Hãy thử lại.", { id: 'save-lead' });
            setLoading(false);
            return;
         }
-        gasService.addAuditLog({
+        syncService.addAuditLog({
            timestamp: new Date().toISOString(),
            user: currentUser.username,
            action: 'UPDATE',
@@ -211,13 +222,13 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
               }
            }
         }
-        const success = await gasService.createLead(payload);
+        const success = await syncService.createLead(payload);
         if (!success) {
            toast.error("Lỗi: Không thể thêm mới dữ liệu trên hệ thống. Hãy thử lại.", { id: 'save-lead' });
            setLoading(false);
            return;
         }
-        gasService.addAuditLog({
+        syncService.addAuditLog({
            timestamp: new Date().toISOString(),
            user: currentUser.username,
            action: 'CREATE',
@@ -230,9 +241,13 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
       }
       onSave(payload as Lead);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error('Có lỗi xảy ra khi lưu data.', { id: 'save-lead', description: 'Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.' });
+      if (error?.message?.includes('Duplicate phone')) {
+          toast.error('Lỗi Data: Khách hàng (SĐT) đã tồn tại trong chi nhánh này!', { id: 'save-lead' });
+      } else {
+          toast.error('Có lỗi xảy ra khi lưu data.', { id: 'save-lead', description: error?.message || 'Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -290,10 +305,45 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
             {dynamicKeys.length > 0 && (
               <button type="button" onClick={() => setActiveTab('advanced')} className={activeTab === 'advanced' ? activeTabClass : inactiveTabClass}>Cột tùy chỉnh ({dynamicKeys.length})</button>
             )}
+            {lead?.id && (
+              <button type="button" onClick={() => setActiveTab('history')} className={activeTab === 'history' ? activeTabClass : inactiveTabClass}>Lịch sử thay đổi</button>
+            )}
           </div>
 
           <div className="p-6 overflow-y-auto flex-1 space-y-6">
 
+            {/* TAB HISTORY */}
+            {activeTab === 'history' && (
+              <div className="space-y-6 animate-in fade-in">
+                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Lịch sử tác động</h3>
+                 {leadHistory.length === 0 ? (
+                    <div className="text-sm text-gray-500">Chưa có dữ liệu lịch sử hoặc đang tải...</div>
+                 ) : (
+                    <div className="space-y-4">
+                       {leadHistory.map((log, i) => {
+                          const action = log.action || log['Hành động'];
+                          const user = log.user || log['Người dùng'];
+                          const time = log.timestamp || log['Thời gian'];
+                          const details = log.details || log['Chi tiết'];
+                          const isCreate = action === 'CREATE';
+                          
+                          return (
+                            <div key={i} className="flex gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                               <div className="flex-shrink-0 mt-1">
+                                  <div className={`w-2 h-2 rounded-full ${isCreate ? 'bg-blue-500' : 'bg-green-500'}`} />
+                               </div>
+                               <div>
+                                  <div className="text-sm font-medium text-gray-900">{user} <span className="text-gray-500 font-normal">{isCreate ? 'đã tạo' : 'đã cập nhật'}</span></div>
+                                  <div className="text-xs text-gray-400 mt-0.5">{new Date(time).toLocaleString('vi-VN')}</div>
+                                  <div className="text-sm text-gray-700 mt-2">{details}</div>
+                               </div>
+                            </div>
+                          );
+                       })}
+                    </div>
+                 )}
+              </div>
+            )}
             
             {/* TAB INFO */}
             {activeTab === 'info' && (

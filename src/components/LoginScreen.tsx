@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, LogIn } from 'lucide-react';
 import { CRMUser } from '../types';
-import { gasService } from '../services/gasService';
+import { auth, db } from '../lib/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 interface LoginScreenProps {
@@ -9,46 +11,66 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const logoUrl = localStorage.getItem('sen_crm_logo');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleGoogleLogin = async (e: React.MouseEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const trimmedUser = username.trim();
-      const trimmedPass = password.trim();
-
-      if (trimmedUser === 'admin' && (trimmedPass === 'admin' || trimmedPass === 'admin123')) {
-         onLogin({ username: 'admin', role: 'admin', branch: 'ALL', status: 'Active' });
-         toast.success('Đăng nhập với nhánh Admin quyền cao nhất.');
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      if (!user.email) {
+         toast.error("Không tìm thấy email liên kết.");
+         auth.signOut();
+         setLoading(false);
          return;
       }
 
-      const users = await gasService.getUsers();
-      if (!users || users.length === 0) {
-        toast.error('Hệ thống chưa thiết lập users.', { description: 'Dùng admin/admin123 để vào Setup kết nối Database.'});
-        setLoading(false);
-        return;
+      // Special case for bootstrapping admin
+      if (user.email === 'Xacungki@gmail.com') {
+         // Automatically give this user admin rights if not exists
+         const userRef = doc(db, 'userRoles', user.uid);
+         const userDoc = await getDoc(userRef);
+         if (!userDoc.exists()) {
+            await setDoc(userRef, {
+               email: user.email,
+               role: 'admin',
+               branch: 'ALL',
+               status: 'Active'
+            });
+         }
       }
 
-      const u = users.find(u => u.username === trimmedUser && u.password === trimmedPass);
-      if (u) {
-         if (u.status !== 'Active') {
+      // Check user roles in Firestore
+      const userRef = doc(db, 'userRoles', user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+         const data = userDoc.data();
+         if (data.status !== 'Active') {
             toast.error('Tài khoản đã bị khóa.');
+            auth.signOut();
             setLoading(false);
             return;
          }
-         onLogin(u);
-         toast.success(`Chào mừng trở lại, ${u.username}!`);
+         onLogin({ 
+            username: user.displayName || user.email, 
+            role: data.role as any, 
+            branch: data.branch || 'ALL', 
+            status: 'Active' 
+         });
+         toast.success(`Chào mừng, ${user.displayName || user.email}!`);
       } else {
-         toast.error('Tài khoản hoặc mật khẩu không chính xác.');
+         toast.error('Tài khoản chưa được cấp quyền truy cập CRM. Liên hệ Admin.');
+         auth.signOut();
       }
-    } catch {
-       toast.error('Lỗi kết nối.');
+    } catch (error: any) {
+       console.error("Login error:", error);
+       toast.error('Lỗi khi đăng nhập bằng Google: ' + error.message);
     } finally {
        setLoading(false);
     }
@@ -79,7 +101,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           </h1>
           <p className="mt-8 text-lg text-gray-500 font-light max-w-md">
             Hệ thống quản lý Lead & Chăm sóc Khách hàng MKT. <br/>
-            Đồng bộ dữ liệu thời gian thực.
+            Đồng bộ dữ liệu thời gian thực với Firebase.
           </p>
         </div>
         
@@ -91,49 +113,21 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white relative">
         <div className="w-full max-w-md space-y-8 relative z-10">
           <div>
-            <h2 className="text-3xl font-semibold tracking-tight text-gray-900 mb-2">Đăng nhập</h2>
-            <p className="text-gray-500 font-light">Vui lòng nhập tài khoản và mật khẩu được cấp.</p>
+            <h2 className="text-3xl font-semibold tracking-tight text-gray-900 mb-2">Đăng nhập Firebase</h2>
+            <p className="text-gray-500 font-light">Vui lòng sử dụng tài khoản Google công ty.</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                 <User className="w-4 h-4 text-gray-500" /> Tài khoản (Username)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-5 py-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all bg-gray-50 focus:bg-white text-gray-900"
-                  placeholder="Nhập tên đăng nhập..."
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                 <Lock className="w-4 h-4 text-gray-500" /> Mật khẩu
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-5 py-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all bg-gray-50 focus:bg-white text-gray-900"
-                  placeholder="Nhập mật khẩu..."
-                />
-              </div>
-            </div>
-
+          <div className="space-y-6">
             <button
-              type="submit"
+              type="button"
+              onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full py-4 px-6 bg-gray-900 disabled:opacity-50 hover:bg-black text-white font-medium rounded-xl transition-colors shadow-sm flex justify-center items-center gap-2"
+              className="w-full py-4 px-6 bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-medium rounded-xl transition-colors shadow-sm flex justify-center items-center gap-3"
             >
-              {loading ? 'Đang xác thực...' : 'Truy cập Hệ thống'} <span className="text-xl leading-none">&rarr;</span>
+              <LogIn className="w-5 h-5 text-gray-700" />
+              {loading ? 'Đang xác thực...' : 'Đăng nhập với Google'}
             </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>
