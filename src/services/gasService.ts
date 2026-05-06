@@ -100,7 +100,7 @@ export const gasService = {
               }
             });
             return data as Lead;
-         });
+         }).reverse();
          
          const branchRolesData = (json.branchRoles || []).map((r: any) => ({
            branch: r['Chi nhánh'] || '',
@@ -137,7 +137,7 @@ export const gasService = {
       });
 
       return {
-        leads: validRows.map(mapSheetRowToLead),
+        leads: validRows.map(mapSheetRowToLead).reverse(),
         schema: json.schema || []
       };
     } catch (error) {
