@@ -69,8 +69,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                      status: 'Active'
                   });
                } catch (createErr: any) {
+                  if (createErr.code === 'auth/operation-not-allowed') {
+                     throw new Error('Đăng nhập bằng Email chưa được bật trên Firebase! Hãy mở Firebase Console > Authentication > Settings bên trái > Sign-in method > Thêm Email/Password.');
+                  }
                   throw new Error('Lỗi tạo tài khoản Firebase ẩn: ' + createErr.message);
                }
+            } else if (signInErr.code === 'auth/operation-not-allowed') {
+               throw new Error('Đăng nhập bằng Email chưa được bật trên Firebase! Hãy mở Firebase Console > Authentication > Settings bên trái > Sign-in method > Thêm Email/Password.');
             } else {
                throw signInErr;
             }
@@ -94,13 +99,24 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 const cred = await signInWithEmailAndPassword(auth, pseudoEmail, password);
              } catch (err: any) {
                 if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                   const cred = await createUserWithEmailAndPassword(auth, pseudoEmail, password);
-                   await setDoc(doc(db, 'userRoles', cred.user.uid), {
-                     email: pseudoEmail,
-                     role: 'admin',
-                     branch: 'ALL',
-                     status: 'Active'
-                   });
+                   try {
+                      const cred = await createUserWithEmailAndPassword(auth, pseudoEmail, password);
+                      await setDoc(doc(db, 'userRoles', cred.user.uid), {
+                        email: pseudoEmail,
+                        role: 'admin',
+                        branch: 'ALL',
+                        status: 'Active'
+                      });
+                   } catch (createErr: any) {
+                      if (createErr.code === 'auth/operation-not-allowed') {
+                         throw new Error('Đăng nhập bằng Email chưa được bật trên Firebase! Hãy mở Firebase Console > Authentication > Settings bên trái > Sign-in method > Thêm Email/Password.');
+                      }
+                      throw createErr;
+                   }
+                } else if (err.code === 'auth/operation-not-allowed') {
+                   throw new Error('Đăng nhập bằng Email chưa được bật trên Firebase! Hãy mở Firebase Console > Authentication > Settings bên trái > Sign-in method > Thêm Email/Password.');
+                } else {
+                   throw err;
                 }
              }
 

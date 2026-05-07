@@ -718,7 +718,7 @@ function doGet(e) {
        if (!userSheet) {
          userSheet = ss.insertSheet('USERS');
          userSheet.appendRow(['Tài khoản', 'Mật khẩu', 'Vai trò', 'Chi nhánh', 'Trạng thái']);
-         userSheet.appendRow(['admin', 'admin123', 'admin', 'ALL', 'Active']);
+         userSheet.appendRow(['admin', '123456', 'admin', 'ALL', 'Active']);
          userSheet.appendRow(['mkt_stt', 'mkt123', 'mkt', 'Sen Thái Thịnh', 'Active']);
          userSheet.appendRow(['sale_stt', 'sale123', 'sale', 'Sen Thái Thịnh', 'Active']);
        }
