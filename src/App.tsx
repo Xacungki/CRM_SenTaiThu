@@ -241,8 +241,9 @@ export default function App() {
             setDropdowns(fetchedDropdowns);
          }
          toast.success(`Đã cập nhật dữ liệu thành công.`, { id: 'sync-leads' });
-    } catch (error) {
-      toast.error('Lỗi khi tải dữ liệu.', { id: 'sync-leads' });
+    } catch (error: any) {
+      console.error("fetchLeads error:", error);
+      toast.error('Lỗi khi tải dữ liệu: ' + (error.message || String(error)), { id: 'sync-leads' });
     } finally {
       setLoading(false);
     }

@@ -213,23 +213,6 @@ export const firebaseService = {
              }
          }
 
-         // Upload users
-         const users = await gasService.getUsers();
-         for (const u of users) {
-             if (u.username === 'admin' || u.username.includes('gmail.com')) {
-                 continue; 
-             }
-             const pseudoEmail = u.username.includes('@') ? u.username : `${u.username}@example.com`;
-             const userRef = doc(collection(db, 'userRoles'));
-             // check if user exist roughly? We could, but user size is small.
-             await setDoc(userRef, {
-                 email: pseudoEmail,
-                 role: u.role,
-                 branch: u.branch,
-                 status: u.status
-             });
-         }
-
          return { success: true, count: successCount };
       } catch (e: any) {
          return { success: false, count: 0, error: e.message };
