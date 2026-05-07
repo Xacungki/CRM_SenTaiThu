@@ -10,7 +10,7 @@ service cloud.firestore {
     // 0.1 Primitives
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isSignedIn() { return request.auth != null; }
     function getUserEmail() { return request.auth.token.email; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
 
@@ -69,7 +69,7 @@ service cloud.firestore {
 
     match /userRoles/{userId} {
       allow read: if isSignedIn(); // Users need to read to know roles and branches
-      allow create: if isAdmin() && isValidUserRole(incoming()) && isValidId(userId);
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUserRole(incoming()) && isValidId(userId);
       // Let people change their own status or admins change any
       allow update: if (isAdmin() || request.auth.uid == userId) && isValidUserRole(incoming());
       allow delete: if isAdmin() && isValidId(userId);

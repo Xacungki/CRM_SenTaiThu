@@ -4,7 +4,8 @@ import { CRMUser } from '../types';
 import { toast } from 'sonner';
 import { gasService } from '../services/gasService';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { db, auth } from '../lib/firebase';
 
 interface LoginScreenProps {
   onLogin: (user: CRMUser) => void;
@@ -47,6 +48,35 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             foundUser.branch = 'ALL';
          }
 
+         // 2. Firebase Authentication Integration
+         // We generate a pseudo-email to conform to Firebase Auth requirements
+         const pseudoEmail = `${foundUser.username.toLowerCase().replace(/[^a-z0-9]/g, '')}@sencrm.local`;
+         let firebaseUser;
+         try {
+            const cred = await signInWithEmailAndPassword(auth, pseudoEmail, foundUser.password);
+            firebaseUser = cred.user;
+         } catch (signInErr: any) {
+            // If user-not-found, we create it dynamically.
+            if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
+               try {
+                  const cred = await createUserWithEmailAndPassword(auth, pseudoEmail, foundUser.password);
+                  firebaseUser = cred.user;
+                  // Persist user role to Firestore so security rules work
+                  await setDoc(doc(db, 'userRoles', firebaseUser.uid), {
+                     email: pseudoEmail,
+                     role: foundUser.role,
+                     branch: foundUser.branch,
+                     status: 'Active'
+                  });
+               } catch (createErr: any) {
+                  throw new Error('Lỗi tạo tài khoản Firebase ẩn: ' + createErr.message);
+               }
+            } else {
+               throw signInErr;
+            }
+         }
+
+         // If we get here, Firebase auth is successful!
          onLogin({ 
             username: foundUser.username, 
             role: foundUser.role, 
@@ -58,6 +88,22 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       } else {
          // Check if they are hardcoded admin just in case sheet fails
          if (username === 'admin' && password === '123456') {
+             // We still need Firebase auth for admin!
+             const pseudoEmail = `admin@sencrm.local`;
+             try {
+                const cred = await signInWithEmailAndPassword(auth, pseudoEmail, password);
+             } catch (err: any) {
+                if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                   const cred = await createUserWithEmailAndPassword(auth, pseudoEmail, password);
+                   await setDoc(doc(db, 'userRoles', cred.user.uid), {
+                     email: pseudoEmail,
+                     role: 'admin',
+                     branch: 'ALL',
+                     status: 'Active'
+                   });
+                }
+             }
+
              onLogin({ username: 'admin', role: 'admin', branch: 'ALL', status: 'Active' });
              toast.success('Đăng nhập Admin thành công!');
          } else {
@@ -66,7 +112,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       }
     } catch (error: any) {
        console.error("Login error:", error);
-       toast.error('Lỗi khi đăng nhập: ' + error.message);
+       toast.error('Lỗi khi đăng nhập: ' + (error.message || 'Unknown error'));
     } finally {
        setLoading(false);
     }
