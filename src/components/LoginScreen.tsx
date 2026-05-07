@@ -3,9 +3,6 @@ import { Lock, User, LogIn } from 'lucide-react';
 import { CRMUser } from '../types';
 import { toast } from 'sonner';
 import { gasService } from '../services/gasService';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
 
 interface LoginScreenProps {
   onLogin: (user: CRMUser) => void;
@@ -35,6 +32,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
          u.password === password
       );
 
+      // FORCE GOOGLE SHEETS ONLY MODE (NO FIREBASE)
+      localStorage.setItem('sen_crm_use_firebase_offline', 'true');
+
       if (foundUser) {
          if (foundUser.status !== 'Active' && foundUser.status !== ('Hoạt động' as any)) {
             toast.error('Tài khoản đã bị khóa.');
@@ -48,40 +48,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             foundUser.branch = 'ALL';
          }
 
-         // 2. Firebase Authentication Integration
-         // We generate a pseudo-email to conform to Firebase Auth requirements
-         const pseudoEmail = `${foundUser.username.toLowerCase().replace(/[^a-z0-9]/g, '')}@sencrm.local`;
-         let firebaseUser;
-         try {
-            const cred = await signInWithEmailAndPassword(auth, pseudoEmail, foundUser.password);
-            firebaseUser = cred.user;
-         } catch (signInErr: any) {
-            // If user-not-found, we create it dynamically.
-            if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
-               try {
-                  const cred = await createUserWithEmailAndPassword(auth, pseudoEmail, foundUser.password);
-                  firebaseUser = cred.user;
-                  // Persist user role to Firestore so security rules work
-                  await setDoc(doc(db, 'userRoles', firebaseUser.uid), {
-                     email: pseudoEmail,
-                     role: foundUser.role,
-                     branch: foundUser.branch,
-                     status: 'Active'
-                  });
-               } catch (createErr: any) {
-                  if (createErr.code === 'auth/operation-not-allowed') {
-                     throw new Error('Đăng nhập bằng Email chưa được bật trên Firebase! Hãy mở Firebase Console > Authentication > Settings bên trái > Sign-in method > Thêm Email/Password.');
-                  }
-                  throw new Error('Lỗi tạo tài khoản Firebase ẩn: ' + createErr.message);
-               }
-            } else if (signInErr.code === 'auth/operation-not-allowed') {
-               throw new Error('Đăng nhập bằng Email chưa được bật trên Firebase! Hãy mở Firebase Console > Authentication > Settings bên trái > Sign-in method > Thêm Email/Password.');
-            } else {
-               throw signInErr;
-            }
-         }
-
-         // If we get here, Firebase auth is successful!
+         // Login is successful!
          onLogin({ 
             username: foundUser.username, 
             role: foundUser.role, 
@@ -89,39 +56,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             status: foundUser.status 
          });
          
-         toast.success(`Chào mừng, ${foundUser.username}!`);
+         toast.success(`Chào mừng ${foundUser.username} (Chế độ Google Sheets)`);
       } else {
          // Check if they are hardcoded admin just in case sheet fails
          if (username === 'admin' && password === '123456') {
-             // We still need Firebase auth for admin!
-             const pseudoEmail = `admin@sencrm.local`;
-             try {
-                const cred = await signInWithEmailAndPassword(auth, pseudoEmail, password);
-             } catch (err: any) {
-                if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                   try {
-                      const cred = await createUserWithEmailAndPassword(auth, pseudoEmail, password);
-                      await setDoc(doc(db, 'userRoles', cred.user.uid), {
-                        email: pseudoEmail,
-                        role: 'admin',
-                        branch: 'ALL',
-                        status: 'Active'
-                      });
-                   } catch (createErr: any) {
-                      if (createErr.code === 'auth/operation-not-allowed') {
-                         throw new Error('Đăng nhập bằng Email chưa được bật trên Firebase! Hãy mở Firebase Console > Authentication > Settings bên trái > Sign-in method > Thêm Email/Password.');
-                      }
-                      throw createErr;
-                   }
-                } else if (err.code === 'auth/operation-not-allowed') {
-                   throw new Error('Đăng nhập bằng Email chưa được bật trên Firebase! Hãy mở Firebase Console > Authentication > Settings bên trái > Sign-in method > Thêm Email/Password.');
-                } else {
-                   throw err;
-                }
-             }
 
              onLogin({ username: 'admin', role: 'admin', branch: 'ALL', status: 'Active' });
-             toast.success('Đăng nhập Admin thành công!');
+             toast.success('Đăng nhập Admin thành công (Chế độ Google Sheets)');
          } else {
              toast.error('Sai tài khoản hoặc mật khẩu.');
          }

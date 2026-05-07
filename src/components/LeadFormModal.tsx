@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, Clock } from 'lucide-react';
 import { Lead, CRMUser } from '../types';
 import { gasService } from '../services/gasService';
-import { firebaseService } from '../services/firebaseService';
 import { syncService } from '../services/syncService';
 import { toast } from 'sonner';
 
@@ -43,7 +42,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
 
   useEffect(() => {
     if (activeTab === 'history' && lead?.id) {
-       firebaseService.getAuditLogs().then(logs => {
+       gasService.getAuditLogs().then(logs => {
           setLeadHistory(logs.filter(log => log.targetId === (lead as any).id));
        }).catch(() => toast.error('Không thể tải lịch sử', { id: 'history-fail' }));
     }
@@ -190,7 +189,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     }
 
     setLoading(true);
-    toast.loading('Đang ghi dữ liệu vào Firebase (và đồng bộ Sheets)...', { id: 'save-lead' });
+    toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });
     try {
       if (lead?._rowIndex || lead?.id) {
         const success = await syncService.updateLead(payload as Lead);

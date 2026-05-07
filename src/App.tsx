@@ -14,9 +14,6 @@ import UpcomingReminders from './components/UpcomingReminders';
 import AdvancedView from './components/AdvancedView';
 import { Lead, CRMUser } from './types';
 import { gasService } from './services/gasService';
-import { firebaseService } from './services/firebaseService';
-import { auth } from './lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 
 import { syncService } from './services/syncService';
 
@@ -78,24 +75,14 @@ function exportToCSV(data: any[], filename: string) {
 export type UserRole = 'admin' | 'mkt' | 'sale' | null;
 
 export default function App() {
-  const [authReady, setAuthReady] = useState(false);
+  const [authReady, setAuthReady] = useState(true);
   const [currentUser, setCurrentUser] = useState<CRMUser | null>(() => {
     const saved = localStorage.getItem('sen_crm_user');
     return saved ? JSON.parse(saved) : null;
   });
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setAuthReady(true);
-      if (!user && currentUser) {
-         // Firebase session expired or user signed out, but local storage still has user.
-         // Force logout to prompt re-login so Firebase session is recreated.
-         setCurrentUser(null);
-         localStorage.removeItem('sen_crm_user');
-      }
-    });
-    return () => unsubscribe();
-  }, [currentUser]);
+  // Removed Firebase onAuthStateChanged to fully rely on Google Sheets & LocalStorage
+
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -233,21 +220,19 @@ export default function App() {
   const fetchLeads = async () => {
     if (!currentUser) return;
     setLoading(true);
-    toast.loading('Đang đồng bộ dữ liệu...', { id: 'sync-leads' });
+    toast.loading('Đang đồng bộ dữ liệu với Google Sheets...', { id: 'sync-leads' });
     try {
-         const fbLeads = await firebaseService.getLeads();
-         
-         // Fallback to Google Sheets if Firebase is empty, or just use App Script for metadata
+         // Fallback to Google Sheets directly seamlessly
          const appData = await gasService.getAppData();
          
          if (appData) {
-            setAllLeads(fbLeads.length > 0 ? fbLeads : appData.leads || []);
+            setAllLeads(appData.leads || []);
             setSchemaHeaders(appData.schema);
             setBranchRoles(appData.branchRoles);
             setDropdowns(appData.dropdowns);
          } else {
             const leadsData = await gasService.getLeads();
-            setAllLeads(fbLeads.length > 0 ? fbLeads : leadsData.leads || []); // use fbLeads if exist
+            setAllLeads(leadsData.leads || []); 
             setSchemaHeaders(leadsData.schema);
             
             const fetchedBranchRoles = await gasService.getBranchRoles();

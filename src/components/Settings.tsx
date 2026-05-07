@@ -9,7 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { gasService } from '../services/gasService';
-import { firebaseService } from '../services/firebaseService';
 import { CRMUser, BranchRole } from '../types';
 
 interface SettingsProps {
@@ -47,11 +46,13 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
     setLoadingBranchRoles(true);
     setLoadingAudit(true);
     try {
-       const [u, br, logs] = await Promise.all([
-          firebaseService.getUsers(), // Fallback to spreadsheet for editing users
-          gasService.getBranchRoles(),
-          firebaseService.getAuditLogs()
+       // Only use Google Sheets directly
+       const [u, logs, br] = await Promise.all([
+          gasService.getUsers(),
+          gasService.getAuditLogs(),
+          gasService.getBranchRoles()
        ]);
+       
        setUsers(u);
        setBranchRoles(br);
        setAuditLogs(logs);
@@ -171,14 +172,9 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
 
   const handleAddUser = async () => {
      const newUser: CRMUser = { username: 'new_user', password: '123', role: 'sale', branch: 'ALL', status: 'Active' };
-     toast.loading('Đang thêm tài khoản...', { id: 'save-user' });
-     const ok = await firebaseService.saveUser(newUser);
-     if (ok) {
-         toast.success('Đã thêm tài khoản.', { id: 'save-user' });
-         fetchData();
-     } else {
-         toast.error('Lỗi khi thêm.', { id: 'save-user' });
-     }
+     const newUsers = [...users, newUser];
+     setUsers(newUsers);
+     await saveUsersToGas(newUsers);
   };
 
   const handleUpdateUser = async (index: number, field: keyof CRMUser, val: string) => {
@@ -186,25 +182,14 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
      newUsers[index] = { ...newUsers[index], [field]: val };
      setUsers(newUsers);
      
-     toast.loading('Đang cập nhật...', { id: 'update-user' });
-     const ok = await firebaseService.saveUser(newUsers[index]);
-     if (ok) toast.success('Đã cập nhật', { id: 'update-user' });
-     else toast.error('Lỗi cập nhật', { id: 'update-user' });
+     await saveUsersToGas(newUsers);
   };
 
   const handleDeleteUser = async (index: number) => {
      if(!window.confirm("Xóa tài khoản này?")) return;
-     const user = users[index];
-     
-     if ((user as any).id) {
-         toast.loading('Đang xóa...', { id: 'del-user' });
-         const ok = await firebaseService.deleteUser((user as any).id);
-         if (ok) toast.success('Đã xóa', { id: 'del-user' });
-         else toast.error('Lỗi xóa', { id: 'del-user' });
-     }
-     
      const newUsers = users.filter((_, i) => i !== index);
      setUsers(newUsers);
+     await saveUsersToGas(newUsers);
   };
 
   return (
@@ -291,24 +276,6 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                   >
                     {saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                     {saved ? 'Đã lưu' : 'Lưu cấu hình'}
-                  </Button>
-
-                  <Button 
-                    variant="outline"
-                    onClick={async () => {
-                       if (!window.confirm("Bắt đầu đồng bộ 2 chiều (Kéo dữ liệu mới từ Sheets xuống Database)? Dữ liệu sẽ được cập nhật/thêm mới dựa theo SĐT và Chi nhánh.")) return;
-                       toast.loading('Đang đồng bộ Data...', {id: 'migrate'});
-                       const result = await firebaseService.migrateFromGas();
-                       if (result.success) {
-                           toast.success(`Đồng bộ thành công ${result.count} khách hàng!`, {id: 'migrate'});
-                       } else {
-                           toast.error(`Đồng bộ thất bại: ${result.error}`, {id: 'migrate'});
-                       }
-                    }}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-50 px-8"
-                  >
-                    <Database className="w-4 h-4" />
-                    Đồng bộ từ Google Sheets
                   </Button>
                 </div>
               </div>
