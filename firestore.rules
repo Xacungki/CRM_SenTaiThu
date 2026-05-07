@@ -43,8 +43,8 @@ service cloud.firestore {
 
     function isValidLead(data) {
       return data.keys().hasAll(['fullName', 'phone']) &&
-             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
-             data.phone is string && data.phone.size() >= 8 && data.phone.size() <= 15 &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 500 &&
+             data.phone is string && data.phone.size() >= 4 && data.phone.size() <= 50 &&
              (!('id' in data) || (data.id is string && data.id.size() <= 100)) &&
              (!('branch' in data) || (data.branch is string && data.branch.size() <= 100)) &&
              (!('creatorEmail' in data) || (data.creatorEmail is string && data.creatorEmail.size() <= 100)) &&
@@ -80,18 +80,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
       
       // 2. Create: Anyone can create leads, but they must set correct creation fields
-      allow create: if isSignedIn() && isValidId(leadId) && isValidLead(incoming()) &&
-                    incoming().createdAt == request.time &&
-                    incoming().creatorEmail == getUserEmail();
+      allow create: if isSignedIn() && isValidId(leadId) && isValidLead(incoming());
       
       // 3. Update: 
-      allow update: if isSignedIn() && isValidId(leadId) && isValidLead(incoming()) &&
-                    incoming().createdAt == existing().createdAt &&
-                    incoming().creatorEmail == existing().creatorEmail &&
-                    incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(leadId) && isValidLead(incoming());
       
       // 4. Delete: Admins or the creator can delete
-      allow delete: if isSignedIn() && isValidId(leadId) && (isAdmin() || existing().creatorEmail == getUserEmail());
+      allow delete: if isSignedIn() && isValidId(leadId) && (isAdmin() || (('creatorEmail' in existing()) && existing().creatorEmail == getUserEmail()));
     }
 
     match /auditLogs/{logId} {

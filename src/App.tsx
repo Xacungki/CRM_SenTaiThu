@@ -15,6 +15,8 @@ import AdvancedView from './components/AdvancedView';
 import { Lead, CRMUser } from './types';
 import { gasService } from './services/gasService';
 import { firebaseService } from './services/firebaseService';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 import { syncService } from './services/syncService';
 
@@ -76,10 +78,24 @@ function exportToCSV(data: any[], filename: string) {
 export type UserRole = 'admin' | 'mkt' | 'sale' | null;
 
 export default function App() {
+  const [authReady, setAuthReady] = useState(false);
   const [currentUser, setCurrentUser] = useState<CRMUser | null>(() => {
     const saved = localStorage.getItem('sen_crm_user');
     return saved ? JSON.parse(saved) : null;
   });
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAuthReady(true);
+      if (!user && currentUser) {
+         // Firebase session expired or user signed out, but local storage still has user.
+         // Force logout to prompt re-login so Firebase session is recreated.
+         setCurrentUser(null);
+         localStorage.removeItem('sen_crm_user');
+      }
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -250,8 +266,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchLeads();
-  }, [refreshTrigger, currentUser]);
+    if (authReady) {
+      fetchLeads();
+    }
+  }, [refreshTrigger, currentUser, authReady]);
+
+  if (!authReady) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">Đang khởi tạo ứng dụng...</div>;
+  }
 
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} />;

@@ -20,11 +20,18 @@ import { gasService } from './gasService';
 export const firebaseService = {
   // Leads
   async getLeads(): Promise<Lead[]> {
-    const q = query(collection(db, 'leads'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'leads'));
     const snapshot = await getDocs(q);
-    return snapshot.docs
+    const leads = snapshot.docs
        .map(doc => ({ id: doc.id, ...doc.data() } as Lead))
        .filter(lead => !lead.isDeleted); // Filter out soft-deleted
+       
+    // Sort locally properly to prevent excluding documents that lack createdAt
+    return leads.sort((a, b) => {
+       const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : Date.now();
+       const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : Date.now();
+       return timeB - timeA;
+    });
   },
 
   async createLead(lead: Partial<Lead>): Promise<boolean> {
