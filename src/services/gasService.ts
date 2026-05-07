@@ -235,16 +235,20 @@ export const gasService = {
     }
   },
 
-  async addAuditLog(log: any): Promise<void> {
+  async addAuditLog(log: any): Promise<boolean> {
     const url = getGasUrl();
-    if (!url) return;
+    if (!url) return false;
     try {
-      fetch(url, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'ADD_AUDIT_LOG', data: log })
       });
-    } catch (error) {}
+      const json = await response.json();
+      return json.status === 'success';
+    } catch (error) {
+      return false;
+    }
   },
 
   async getAuditLogs(): Promise<any[]> {
@@ -450,6 +454,7 @@ function mapLeadToSheetRow(lead: Partial<Lead>): any {
     'Lần chăm sóc cuối cùng': protectDateStr(lead.lastCareStatus),
     'Tình trạng chốt': lead.finalStatus,
     'Số lượng': lead.customerCount,
+    'Số lượng khách': lead.customerCount,
     'Đơn giá': lead.unitPrice,
     'Thành tiền': lead.totalAmount,
     'Nội dung CSKH': lead.cskhNote,
