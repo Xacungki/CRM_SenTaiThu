@@ -384,7 +384,7 @@ function mapSheetRowToLead(row: any): Lead {
     id: formatPossibleDate(row['ID']) || '',
     date: formatPossibleDate(row['Ngày '] || row['Ngày']) || '',
     fullName: row['Họ và tên'] || '',
-    phone: row['Số điện thoại'] || '',
+    phone: row['Số điện thoại'] ? String(row['Số điện thoại']) : '',    
     branch: row['Chi nhánh'] || '',
     source: row['Nguồn'] || '',
     adsStaff: row['Nhân viên Ads'] || '',

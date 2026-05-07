@@ -167,20 +167,44 @@ export const firebaseService = {
 
   async migrateFromGas(): Promise<{success: boolean, count: number, error?: string}> {
       try {
+         let leads: Lead[] = [];
          const data = await gasService.getAppData();
-         if (!data || !data.leads) {
-             return { success: false, count: 0, error: 'No data returned from Google Sheets' };
+         if (data && data.leads) {
+             leads = data.leads;
+         } else {
+             const leadRs = await gasService.getLeads();
+             leads = leadRs?.leads || [];
          }
          
-         const leads = data.leads;
+         if (leads.length === 0) {
+             return { success: false, count: 0, error: 'No data returned from Google Sheets or empty' };
+         }
+         
          const authUserEmail = auth.currentUser?.email || '';
 
          // Upload/Upsert leads
          let successCount = 0;
+         let lastError = '';
          for (const lead of leads) {
              // Basic fallback for requirement
-             if (!lead.fullName) lead.fullName = 'Unknown';
-             if (!lead.phone) lead.phone = '0000000000';
+             lead.fullName = lead.fullName ? String(lead.fullName) : 'Unknown';
+             if (lead.fullName.trim().length === 0) lead.fullName = 'Unknown';
+             
+             lead.phone = lead.phone ? String(lead.phone) : '0000000000';
+             if (lead.phone.length < 4) lead.phone = lead.phone.padStart(4, '0');
+             if (lead.phone.length > 50) lead.phone = lead.phone.substring(0, 50);
+
+             let { branch, id, creatorEmail } = lead;
+             if (branch) lead.branch = String(branch).substring(0, 100);
+             if (id) lead.id = String(id).substring(0, 100);
+             if (creatorEmail) lead.creatorEmail = String(creatorEmail).substring(0, 100);
+             
+             // Ensure no undefined values on custom fields or base fields
+             Object.keys(lead).forEach(k => {
+               if ((lead as any)[k] === undefined) {
+                 delete (lead as any)[k];
+               }
+             });
              
              // Try to find if this phone+branch already exists
              let existingLeadId: string | null = null;
@@ -215,12 +239,17 @@ export const firebaseService = {
                 // Upsert to Firestore
                 await setDoc(docRef, payload, { merge: true });
                 successCount++;
-             } catch (err) {
+             } catch (err: any) {
                 console.error("Failed to migrate/upsert lead:", lead, err);
+                lastError = err?.message || String(err);
              }
          }
 
-         return { success: true, count: successCount };
+         if (successCount === 0 && leads.length > 0 && lastError) {
+             return { success: false, count: 0, error: lastError };
+         }
+
+         return { success: true, count: successCount, error: lastError ? `Đã đồng bộ ${successCount}, nhưng có lỗi với item khác: ${lastError}` : undefined };
       } catch (e: any) {
          return { success: false, count: 0, error: e.message };
       }
