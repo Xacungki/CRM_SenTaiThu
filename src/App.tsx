@@ -341,7 +341,7 @@ export default function App() {
       onAddNew={handleOpenNew}
       headerActions={['dashboard', 'leads'].includes(currentRoute) ? (
         <div className="flex items-center gap-2">
-           <FilterBar onFilterChange={setFilters} branchRoles={branchRoles} />
+           <FilterBar onFilterChange={setFilters} branchRoles={branchRoles} dropdowns={dropdowns} />
            <button 
              onClick={fetchLeads}
              className={`px-3 py-2 flex items-center gap-2 bg-gray-900 text-white font-medium rounded-xl border border-gray-900 hover:bg-gray-800 shadow-sm text-sm ${loading ? 'opacity-50' : ''}`}
@@ -351,77 +351,76 @@ export default function App() {
              <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
              <span className="hidden sm:inline">Đồng bộ</span>
            </button>
-           {currentUser.role !== 'sale' && (
-             <>
-               <input 
-                  type="file" 
-                  accept=".csv" 
-                  id="csv-upload" 
-                  className="hidden" 
-                  onChange={async (e) => {
-                     const file = e.target.files?.[0];
-                     if (!file) return;
-                     const reader = new FileReader();
-                     reader.onload = async (event) => {
-                        const text = event.target?.result as string;
-                        const lines = text.split('\n').filter(l => l.trim().length > 0);
-                        if(lines.length < 2) return toast.error("File CSV không hợp lệ hoặc không có dữ liệu.");
-                        const headers = lines[0].split(',').map(h => h.trim());
-                        const newLeads = [];
-                        let duplicateCount = 0;
-                        for (let i = 1; i < lines.length; i++) {
-                           // Basic CSV row parsing
-                           const rowMatches = lines[i].match(/(?!\s*$)\s*(?:'([^'\\]*(?:\\[\s\S][^'\\]*)*)'|"([^"\\]*(?:\\[\s\S][^"\\]*)*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g);
-                           if (!rowMatches) continue;
-                           const values = rowMatches.map(v => v.replace(/,$/, '').replace(/^["']|["']$/g, '').trim());
-                           
-                           const leadData: any = {};
-                           headers.forEach((h, idx) => {
-                              if (values[idx]) leadData[h] = values[idx];
-                           });
-                           
-                           const formattedLead: Partial<Lead> = { ...leadData };
-                           formattedLead.fullName = leadData['Họ và tên'] || leadData['fullName'] || leadData['name'] || '';
-                           formattedLead.phone = leadData['Số điện thoại'] || leadData['phone'] || leadData['SĐT'] || '';
-                           
-                           if (!formattedLead.phone) continue;
+          {/* Upload CSV button available for all, just normal fragment wrapper removed */}
+              <>
+                <input 
+                   type="file" 
+                   accept=".csv" 
+                   id="csv-upload" 
+                   className="hidden" 
+                   onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = async (event) => {
+                         const text = event.target?.result as string;
+                         const lines = text.split('\n').filter(l => l.trim().length > 0);
+                         if(lines.length < 2) return toast.error("File CSV không hợp lệ hoặc không có dữ liệu.");
+                         const headers = lines[0].split(',').map(h => h.trim());
+                         const newLeads = [];
+                         let duplicateCount = 0;
+                         for (let i = 1; i < lines.length; i++) {
+                            // Basic CSV row parsing
+                            const rowMatches = lines[i].match(/(?!\s*$)\s*(?:'([^'\\]*(?:\\[\s\S][^'\\]*)*)'|"([^"\\]*(?:\\[\s\S][^"\\]*)*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g);
+                            if (!rowMatches) continue;
+                            const values = rowMatches.map(v => v.replace(/,$/, '').replace(/^["']|["']$/g, '').trim());
+                            
+                            const leadData: any = {};
+                            headers.forEach((h, idx) => {
+                               if (values[idx]) leadData[h] = values[idx];
+                            });
+                            
+                            const formattedLead: Partial<Lead> = { ...leadData };
+                            formattedLead.fullName = leadData['Họ và tên'] || leadData['fullName'] || leadData['name'] || '';
+                            formattedLead.phone = leadData['Số điện thoại'] || leadData['phone'] || leadData['SĐT'] || '';
+                            
+                            if (!formattedLead.phone) continue;
 
-                           // Duplicate check
-                           const isDuplicate = allLeads.some(l => l.phone === formattedLead.phone && l.branch === formattedLead.branch);
-                           if (isDuplicate) {
-                              duplicateCount++;
-                              continue;
-                           }
-                           newLeads.push(formattedLead);
-                        }
+                            // Duplicate check
+                            const isDuplicate = allLeads.some(l => l.phone === formattedLead.phone && l.branch === formattedLead.branch);
+                            if (isDuplicate) {
+                               duplicateCount++;
+                               continue;
+                            }
+                            newLeads.push(formattedLead);
+                         }
 
-                        if (duplicateCount > 0) {
-                           toast.warning(`Đã bỏ qua ${duplicateCount} số điện thoại trùng lặp trong cùng chi nhánh.`);
-                        }
+                         if (duplicateCount > 0) {
+                            toast.warning(`Đã bỏ qua ${duplicateCount} số điện thoại trùng lặp trong cùng chi nhánh.`);
+                         }
 
-                        if (newLeads.length > 0) {
-                           toast.loading(`Đang nạp ${newLeads.length} leads...`, {id: 'import-csv'});
-                           const success = await syncService.importLeads(newLeads);
-                           if (success) {
-                              toast.success(`Nhập thành công ${newLeads.length} leads!`, {id: 'import-csv'});
-                              setRefreshTrigger(prev => prev + 1);
-                           } else {
-                              toast.error(`Nhập dữ liệu thất bại. Vui lòng thử lại.`, {id: 'import-csv'});
-                           }
-                        } else {
-                           toast.info('Không có dữ liệu mới nào được nhập vào.');
-                        }
-                     };
-                     reader.readAsText(file);
-                     e.target.value = '';
-                  }}
-               />
-               <label htmlFor="csv-upload" className="px-3 py-2 flex items-center gap-2 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 shadow-sm text-sm cursor-pointer" title="Nhập dữ liệu CSV">
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                 <span className="hidden sm:inline">Nhập file</span>
-               </label>
-             </>
-           )}
+                         if (newLeads.length > 0) {
+                            toast.loading(`Đang nạp ${newLeads.length} leads...`, {id: 'import-csv'});
+                            const success = await syncService.importLeads(newLeads);
+                            if (success) {
+                               toast.success(`Nhập thành công ${newLeads.length} leads!`, {id: 'import-csv'});
+                               setRefreshTrigger(prev => prev + 1);
+                            } else {
+                               toast.error(`Nhập dữ liệu thất bại. Vui lòng thử lại.`, {id: 'import-csv'});
+                            }
+                         } else {
+                            toast.info('Không có dữ liệu mới nào được nhập vào.');
+                         }
+                      };
+                      reader.readAsText(file);
+                      e.target.value = '';
+                   }}
+                />
+                <label htmlFor="csv-upload" className="px-3 py-2 flex items-center gap-2 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 shadow-sm text-sm cursor-pointer" title="Nhập dữ liệu CSV">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span className="hidden sm:inline">Nhập file</span>
+                </label>
+              </>
            <button 
              onClick={() => exportToCSV(filteredLeads, 'SenTaiThu_Data.csv')}
              className="px-3 py-2 flex items-center gap-2 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 shadow-sm text-sm"
@@ -476,8 +475,8 @@ export default function App() {
         </div>
       )}
 
-      {currentRoute === 'settings' && currentUser?.role === 'admin' && (
-        <Settings initialSchema={schemaHeaders} />
+      {currentRoute === 'settings' && (
+        <Settings initialSchema={schemaHeaders} currentUser={currentUser} />
       )}
 
       {currentRoute === 'advanced' && (

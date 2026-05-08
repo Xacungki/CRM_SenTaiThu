@@ -97,7 +97,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
             break;
         }
     }
-    if (formData.lastCareStatus !== lastCareTime) {
+    if (lastCareTime && formData.lastCareStatus !== lastCareTime) {
       setFormData(prev => ({ ...prev, lastCareStatus: lastCareTime }));
     }
   }, [
@@ -179,14 +179,13 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
     for (let i = 7; i >= 1; i--) {
         const careValue = (payload as any)[`care${i}`];
         const timeValue = (payload as any)[`time${i}`];
-        if (careValue && careValue !== 'Trống') {
-            lastStatusTime = timeValue || getCurrentFormattedTime();
+        if (careValue && careValue !== 'Trống' && careValue !== '') {
+            lastStatusTime = timeValue;
             break;
         }
     }
-    if (lastStatusTime) {
-      payload.lastCareStatus = lastStatusTime;
-    }
+    // Always update lastCareStatus to the current interaction time when saving from Web
+    payload.lastCareStatus = getCurrentFormattedTime();
 
     setLoading(true);
     toast.loading('Đang ghi dữ liệu vào Google Sheets...', { id: 'save-lead' });
@@ -348,7 +347,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
             {activeTab === 'info' && (
               <div className="space-y-6 animate-in fade-in">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Thông tin cơ bản {isMktDisabled && <span className="text-orange-500 lowercase normal-case ml-2 font-normal">(Chỉ xem)</span>}</h3>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Thông tin cơ bản</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên *</label>
@@ -384,15 +383,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                       <select disabled={isMktDisabled} name="source" value={formData.source || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500">
                         {dropdowns['Nguồn'] && dropdowns['Nguồn'].length > 0 ? (
                            dropdowns['Nguồn'].map(opt => <option key={opt} value={opt}>{opt}</option>)
-                        ) : (
-                           <>
-                             <option value="Facebook">Facebook</option>
-                             <option value="Tiktok">Tiktok</option>
-                             <option value="Google">Google</option>
-                             <option value="Zalo">Zalo</option>
-                             <option value="Organic">Organic</option>
-                           </>
-                        )}
+                        ) : null}
                       </select>
                     </div>
                     <div>
@@ -400,13 +391,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                       <select disabled={isMktDisabled} name="dataType" value={formData.dataType || ''} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-500">
                         {dropdowns['Phân loại Data'] && dropdowns['Phân loại Data'].length > 0 ? (
                            dropdowns['Phân loại Data'].map(opt => <option key={opt} value={opt}>{opt}</option>)
-                        ) : (
-                           <>
-                             <option value="Data Nóng">Data Nóng</option>
-                             <option value="Data Lạnh">Data Lạnh</option>
-                             <option value="Data Cũ">Data Cũ</option>
-                           </>
-                        )}
+                        ) : null}
                       </select>
                     </div>
                     <div>
@@ -434,8 +419,6 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                     + Thêm lịch sử chăm sóc
                   </button>
                 </div>
-
-                {isCskhDisabled && <p className="text-sm text-orange-600 px-2 italic">Tài khoản Marketing chỉ có quyền xem lịch sử chăm sóc.</p>}
 
                 <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:ml-8 md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
                   {[1, 2, 3, 4, 5, 6, 7].map((num) => {
@@ -478,16 +461,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                               <option value="">Trống</option>
                               {dropdowns['Chăm sóc lần'] && dropdowns['Chăm sóc lần'].length > 0 ? (
                                 dropdowns['Chăm sóc lần'].map(opt => <option key={opt} value={opt}>{opt}</option>)
-                              ) : (
-                                <>
-                                  <option value="Không nghe máy">Không nghe máy</option>
-                                  <option value="Khách xa">Khách xa</option>
-                                  <option value="Chăm sóc mới">Chăm sóc mới / Gọi lại</option>
-                                  <option value="Khách tiềm năng">Khách tiềm năng</option>
-                                  <option value="Đã đến hẹn">Đã đến hẹn</option>
-                                  <option value="Sai số">Sai số</option>
-                                </>
-                              )}
+                              ) : null}
                             </select>
                           </div>
                         </div>
@@ -582,13 +556,7 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                             <option value="">-- Chọn tình trạng chốt --</option>
                             {dropdowns['Tình trạng chốt'] && dropdowns['Tình trạng chốt'].length > 0 ? (
                                dropdowns['Tình trạng chốt'].map(opt => <option key={opt} value={opt}>{opt}</option>)
-                            ) : (
-                               <>
-                                 <option value="Đã chốt">Đã chốt</option>
-                                 <option value="Không chốt">Không chốt</option>
-                                 <option value="Hẹn lại">Hẹn lại</option>
-                               </>
-                            )}
+                            ) : null}
                           </select>
                         </div>
                     </div>

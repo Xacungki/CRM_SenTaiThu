@@ -32,12 +32,20 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
       if (filters.branch && lead.branch !== filters.branch) return false;
       if (filters.source && lead.source !== filters.source) return false;
       
-      // Status matching (simplified)
+      // Status matching (care progress)
       if (filters.status) {
-        if (filters.status === 'Đang CSKH' && (!lead.finalStatus || lead.finalStatus === '')) {
-           // It's match
-        } else if (lead.finalStatus !== filters.status) {
-          return false;
+        let lastStatus = '';
+        const filterStatusMatch = filters.status.trim();
+        for (let i = 7; i >= 1; i--) {
+            let careVal = (lead as any)[`care${i}`];
+            if (careVal && careVal !== 'Trống' && careVal.trim() !== '') {
+                lastStatus = careVal.trim();
+                break;
+            }
+        }
+        
+        if (lastStatus !== filterStatusMatch && lead.finalStatus?.trim() !== filterStatusMatch) {
+            return false;
         }
       }
 
@@ -183,13 +191,14 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
               <th className="px-6 py-3 border-b border-gray-200">Trạng Thái CSKH</th>
               <th className="px-6 py-3 border-b border-gray-200">Người Phụ Trách</th>
               <th className="px-6 py-3 border-b border-gray-200">Kết Quả</th>
+              <th className="px-6 py-3 border-b border-gray-200">Ghi chú</th>
               <th className="px-6 py-3 border-b border-gray-200 w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                   <div className="flex flex-col items-center justify-center">
                     <RefreshCcw className="w-8 h-8 animate-spin text-gray-900 mb-2" />
                     <p>Đang tải dữ liệu từ Google Sheets...</p>
@@ -198,7 +207,7 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
               </tr>
             ) : paginatedLeads.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-20 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-20 text-center text-gray-500">
                   <div className="flex flex-col items-center justify-center">
                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
                       <Search className="w-8 h-8 text-gray-400" />
@@ -312,6 +321,11 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
                         }
                         return <span className="text-xs text-gray-400 italic">Chưa CSKH</span>;
                     })()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-600 truncate max-w-[150px]" title={lead.note || ''}>
+                      {lead.note || '-'}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button 

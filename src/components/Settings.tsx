@@ -13,9 +13,10 @@ import { CRMUser, BranchRole } from '../types';
 
 interface SettingsProps {
   initialSchema?: string[];
+  currentUser?: CRMUser;
 }
 
-export default function Settings({ initialSchema = [] }: SettingsProps) {
+export default function Settings({ initialSchema = [], currentUser }: SettingsProps) {
   const [gasUrl, setGasUrl] = useState('');
   const [saved, setSaved] = useState(false);
   const [users, setUsers] = useState<CRMUser[]>([]);
@@ -442,9 +443,11 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                            </Select>
                          </TableCell>
                          <TableCell>
-                           <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(i)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 relative z-10">
-                             <Trash2 className="w-4 h-4" />
-                           </Button>
+                           {currentUser?.role === 'admin' && (
+                             <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(i)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 relative z-10">
+                               <Trash2 className="w-4 h-4" />
+                             </Button>
+                           )}
                          </TableCell>
                        </TableRow>
                      ))}
@@ -499,9 +502,11 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                            <Input value={role.assignedStaff} onChange={e => handleUpdateBranchRole(i, 'assignedStaff', e.target.value)} className="h-8 shadow-none min-w-[150px]" placeholder="staff1, staff2..." />
                          </TableCell>
                          <TableCell>
-                           <Button variant="ghost" size="icon" onClick={() => handleDeleteBranchRole(i)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 relative z-10">
-                             <Trash2 className="w-4 h-4" />
-                           </Button>
+                           {currentUser?.role === 'admin' && (
+                             <Button variant="ghost" size="icon" onClick={() => handleDeleteBranchRole(i)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 relative z-10">
+                               <Trash2 className="w-4 h-4" />
+                             </Button>
+                           )}
                          </TableCell>
                        </TableRow>
                      ))}
@@ -562,7 +567,7 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                              <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">Hiển thị</span>
                            </TableCell>
                            <TableCell>
-                             {!isSystem && (
+                             {!isSystem && currentUser?.role === 'admin' && (
                                <Button variant="ghost" size="icon" onClick={() => handleDeleteField(i)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 relative z-10">
                                  <Trash2 className="w-4 h-4" />
                                </Button>
@@ -638,7 +643,7 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
                                </div>
                              </TableCell>
                              <TableCell className="align-top pt-4">
-                               {!isSystem && (
+                               {!isSystem && currentUser?.role === 'admin' && (
                                  <Button variant="ghost" size="icon" onClick={() => handleDeleteDropdownCategory(category)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 relative z-10">
                                    <Trash2 className="w-4 h-4" />
                                  </Button>
@@ -933,7 +938,7 @@ function doGet(e) {
                      val = "";
                   }
                   if (val !== "" && i <= 3) hasData = true; // Simple check if row has data
-                  obj[header.toString().trim()] = val;
+                  obj[header.toString().trim().replace(/\\s+/g, ' ')] = val;
                }
              });
              if (!obj['ID'] && !obj['Số điện thoại'] && !obj['Họ và tên']) hasData = false;
@@ -1029,7 +1034,7 @@ function doPost(e) {
         }
 
         const newRow = headers.map(h => {
-             const key = h.toString().trim();
+             const key = h.toString().trim().replace(/\\s+/g, ' ');
              if (key === 'Mã Khách Hàng' || key.toLowerCase() === 'id') return 'FB-' + new Date().getTime();
              if (key === 'Ngày Nhận Data' || key.toLowerCase() === 'date') return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
              if (key === 'Họ Tên' || key.toLowerCase().includes('name')) return name;
@@ -1052,7 +1057,7 @@ function doPost(e) {
         let note = body.message ? body.message.text : body.event_name;
         
         const newRow = headers.map(h => {
-             const key = h.toString().trim();
+             const key = h.toString().trim().replace(/\\s+/g, ' ');
              if (key === 'Mã Khách Hàng' || key.toLowerCase() === 'id') return 'ZA-' + new Date().getTime();
              if (key === 'Ngày Nhận Data' || key.toLowerCase() === 'date') return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
              if (key === 'Họ Tên' || key.toLowerCase().includes('name')) return name;
@@ -1146,7 +1151,7 @@ function doPost(e) {
        const rowsToApppend = [];
        for (const leadData of payload) {
            const newRow = headers.map(h => {
-              const key = h.toString().trim();
+              const key = h.toString().trim().replace(/\\s+/g, ' ');
               let val = leadData[key] !== undefined ? leadData[key] : "";
               if (!val && (key.toLowerCase() === 'id' || key.toLowerCase() === 'mã khách hàng')) {
                  val = Utilities.getUuid().split('-')[0].toUpperCase();
@@ -1167,7 +1172,7 @@ function doPost(e) {
 
     if (action === 'CREATE') {
       const newRow = headers.map(h => {
-         const key = h.toString().trim();
+         const key = h.toString().trim().replace(/\\s+/g, ' ');
          let val = payload[key] !== undefined ? payload[key] : "";
          
          // Auto-generate ID if missing
@@ -1189,7 +1194,7 @@ function doPost(e) {
       if(!rowIndex) throw new Error("Missing _rowIndex for update");
       const currentValues = sheet.getRange(rowIndex, 1, 1, headers.length).getValues()[0];
       const updateData = headers.map((h, i) => {
-          const key = h.toString().trim();
+          const key = h.toString().trim().replace(/\\s+/g, ' ');
           return payload[key] !== undefined ? payload[key] : currentValues[i];
       });
       sheet.getRange(rowIndex, 1, 1, headers.length).setValues([updateData]);

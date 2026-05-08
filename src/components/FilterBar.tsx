@@ -14,9 +14,10 @@ interface FilterState {
 interface FilterBarProps {
   onFilterChange: (filters: FilterState) => void;
   branchRoles?: any[];
+  dropdowns?: Record<string, string[]>;
 }
 
-export default function FilterBar({ onFilterChange, branchRoles = [] }: FilterBarProps) {
+export default function FilterBar({ onFilterChange, branchRoles = [], dropdowns = {} }: FilterBarProps) {
   const [filters, setFilters] = useState<FilterState>({
     searchTerm: '',
     source: '',
@@ -147,10 +148,9 @@ export default function FilterBar({ onFilterChange, branchRoles = [] }: FilterBa
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
               >
                 <option value="">Tất cả nguồn</option>
-                <option value="Facebook">Facebook</option>
-                <option value="Tiktok">Tiktok</option>
-                <option value="Google">Google</option>
-                <option value="Zalo">Zalo</option>
+                {dropdowns['Nguồn'] && dropdowns['Nguồn'].length > 0 ? (
+                  dropdowns['Nguồn'].map(opt => <option key={opt} value={opt}>{opt}</option>)
+                ) : null}
               </select>
             </div>
             <div>
@@ -161,10 +161,9 @@ export default function FilterBar({ onFilterChange, branchRoles = [] }: FilterBa
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
               >
                 <option value="">Tất cả trạng thái</option>
-                <option value="Đã chốt">Đã chốt</option>
-                <option value="Đang CSKH">Đang CSKH</option>
-                <option value="Không nghe máy">Không nghe máy</option>
-                <option value="Khách xa">Khách xa</option>
+                {dropdowns['Chăm sóc lần'] && dropdowns['Chăm sóc lần'].length > 0 ? (
+                  dropdowns['Chăm sóc lần'].map(opt => <option key={opt} value={opt}>{opt}</option>)
+                ) : null}
               </select>
             </div>
           </div>

@@ -88,18 +88,16 @@ export default function Layout({ children, onAddNew, headerActions, currentRoute
             onClick={() => { onNavigate('leads'); setSidebarOpen(false); }}
           />
           
-          {currentUser.role === 'admin' && (
-            <>
-              <div className="my-6 border-t border-gray-100" />
-              <div className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Hệ thống</div>
-              <NavItem 
-                icon={<Users className="w-5 h-5" />} 
-                label="Cài đặt & Tài khoản" 
-                active={currentRoute === 'settings'} 
-                onClick={() => { onNavigate('settings'); setSidebarOpen(false); }}
-              />
-            </>
-          )}
+          <>
+            <div className="my-6 border-t border-gray-100" />
+            <div className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Hệ thống</div>
+            <NavItem 
+              icon={<Users className="w-5 h-5" />} 
+              label="Cài đặt & Tài khoản" 
+              active={currentRoute === 'settings'} 
+              onClick={() => { onNavigate('settings'); setSidebarOpen(false); }}
+            />
+          </>
         </nav>
         
         <div className="p-4 border-t border-gray-100">
