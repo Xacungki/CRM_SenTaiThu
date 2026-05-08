@@ -114,53 +114,59 @@ export default function LeadTable({ leads, loading, onEditLead, filters, onRefre
             </div>
           ) : (
             paginatedLeads.map((lead, i) => (
-              <div key={lead.id || i} className="p-4 hover:bg-gray-50 transition-colors cursor-pointer relative" onClick={() => onEditLead?.(lead)}>
-                <div className="flex justify-between items-start mb-2">
-                  <div className="font-medium text-gray-900">{lead.fullName || '---'}</div>
-                  {lead.finalStatus ? (
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${
-                      lead.finalStatus.includes('Đã chốt') 
-                        ? 'bg-green-50 text-green-700 border-green-200'
-                        : 'bg-red-50 text-red-700 border-red-200'
-                    }`}>
-                      {lead.finalStatus}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-gray-400 italic">Đang bám sát</span>
-                  )}
+              <div key={lead.id || i} className="p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer relative group border-b border-gray-100 last:border-0 m-2 mt-0 rounded-xl shadow-sm ring-1 ring-gray-900/5" onClick={() => onEditLead?.(lead)}>
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                     <div className="font-semibold text-gray-900 text-sm">{lead.fullName || '---'}</div>
+                     <div className="text-[10px] text-gray-400 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {lead.date}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {lead.finalStatus ? (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                        lead.finalStatus.includes('Đã chốt') 
+                          ? 'bg-green-50 text-green-700 border-green-200'
+                          : 'bg-red-50 text-red-700 border-red-200'
+                      }`}>
+                        {lead.finalStatus}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] text-gray-500 bg-gray-100 italic">Đang bám sát</span>
+                    )}
+                  </div>
                 </div>
                 
-                <div className="flex flex-col gap-1.5 text-xs text-gray-600 mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-gray-400" />
+                <div className="flex flex-col gap-2 text-xs text-gray-600 mb-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100/50">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                     <span>{lead.phone || '---'}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                     <span className="truncate">{lead.branch || '---'} {lead.note ? `- ${lead.note}` : ''}</span>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-end mt-3 pt-3 border-t border-gray-50">
+                <div className="flex justify-between items-end">
                   <div className="flex flex-col gap-1">
-                     <span className="text-[10px] text-gray-500">MKT: {lead.adsStaff || '-'}</span>
-                     <span className="text-[10px] text-gray-500">Sale: {lead.cskhStaff || '-'}</span>
+                     <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                       <span className="w-8 font-medium">MKT:</span> <span className="text-gray-900">{lead.adsStaff || '-'}</span>
+                     </span>
+                     <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                       <span className="w-8 font-medium">Sale:</span> <span className="text-gray-900">{lead.cskhStaff || '-'}</span>
+                     </span>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap justify-end pl-4">
                     {lead.source && (
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700">
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-100">
                         {lead.source}
                       </span>
                     )}
                     {lead.dataType && (
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-orange-50 text-orange-700">
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-orange-50 text-orange-700 border border-orange-100">
                         {lead.dataType}
                       </span>
                     )}
                   </div>
-                </div>
-                <div className="absolute top-4 right-4 md:hidden opacity-0 pointer-events-none">
-                  <Edit2 className="w-4 h-4 text-gray-400" />
                 </div>
               </div>
             ))

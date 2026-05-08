@@ -284,32 +284,32 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
   const dynamicKeys = Array.from(new Set([...dynamicKeysFromSchema, ...dynamicKeysFromData]));
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center md:p-4">
       <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">
+      <div className="relative bg-white md:rounded-2xl shadow-xl w-full h-full md:h-auto md:max-h-[90vh] md:max-w-3xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="px-4 md:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white relative z-10 shrink-0">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900 line-clamp-1 pr-4">
             {lead ? `Cập nhật Khách Hàng: ${lead.fullName || ''}` : 'Thêm Lead Mới'}
           </h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 -mr-2 md:-mr-0 shrink-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form id="lead-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="flex flex-col flex-1 min-h-0">
-          <div className="flex overflow-x-auto border-b border-gray-200 px-6 hide-scrollbar flex-shrink-0">
-            <button type="button" onClick={() => setActiveTab('info')} className={activeTab === 'info' ? activeTabClass : inactiveTabClass}>Thông tin chung</button>
-            <button type="button" onClick={() => setActiveTab('care')} className={activeTab === 'care' ? activeTabClass : inactiveTabClass}>Lịch sử CSKH</button>
-            <button type="button" onClick={() => setActiveTab('billing')} className={activeTab === 'billing' ? activeTabClass : inactiveTabClass}>Chốt & Thanh toán</button>
+        <form id="lead-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="flex flex-col flex-1 min-h-0 bg-white">
+          <div className="flex overflow-x-auto border-b border-gray-200 px-4 md:px-6 hide-scrollbar flex-shrink-0">
+            <button type="button" onClick={() => setActiveTab('info')} className={`whitespace-nowrap ${activeTab === 'info' ? activeTabClass : inactiveTabClass}`}>Thông tin chung</button>
+            <button type="button" onClick={() => setActiveTab('care')} className={`whitespace-nowrap ${activeTab === 'care' ? activeTabClass : inactiveTabClass}`}>Lịch sử CSKH</button>
+            <button type="button" onClick={() => setActiveTab('billing')} className={`whitespace-nowrap ${activeTab === 'billing' ? activeTabClass : inactiveTabClass}`}>Chốt & Thanh toán</button>
             {dynamicKeys.length > 0 && (
-              <button type="button" onClick={() => setActiveTab('advanced')} className={activeTab === 'advanced' ? activeTabClass : inactiveTabClass}>Cột tùy chỉnh ({dynamicKeys.length})</button>
+              <button type="button" onClick={() => setActiveTab('advanced')} className={`whitespace-nowrap ${activeTab === 'advanced' ? activeTabClass : inactiveTabClass}`}>Tuyỳ chỉnh ({dynamicKeys.length})</button>
             )}
             {lead?.id && (
-              <button type="button" onClick={() => setActiveTab('history')} className={activeTab === 'history' ? activeTabClass : inactiveTabClass}>Lịch sử thay đổi</button>
+              <button type="button" onClick={() => setActiveTab('history')} className={`whitespace-nowrap ${activeTab === 'history' ? activeTabClass : inactiveTabClass}`}>Lịch sử</button>
             )}
           </div>
 
-          <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-6">
 
             {/* TAB HISTORY */}
             {activeTab === 'history' && (
@@ -638,8 +638,8 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
             
           </div>
 
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center z-10 w-full">
-            <div>
+          <div className="px-4 md:px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center z-10 w-full gap-3 md:gap-0 mt-auto shrink-0">
+            <div className="w-full md:w-auto flex justify-center md:justify-start">
               {lead && currentUser.role === 'admin' && (
                 <button 
                   type="button" 
@@ -648,17 +648,17 @@ export default function LeadFormModal({ isOpen, onClose, onSave, onDelete, lead,
                       onDelete?.(lead as Lead);
                     }
                   }} 
-                  className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
+                  className="w-full md:w-auto px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
                 >
                   Xóa khách hàng
                 </button>
               )}
             </div>
-            <div className="flex gap-3">
-               <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex gap-3 w-full md:w-auto">
+               <button type="button" onClick={onClose} className="flex-1 md:flex-none px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center">
                  Hủy
                </button>
-               <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2">
+               <button type="submit" disabled={loading} className="flex-1 md:flex-none justify-center px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2">
                  {loading ? 'Đang lưu...' : 'Lưu dữ liệu'}
                </button>
             </div>
