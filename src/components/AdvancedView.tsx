@@ -187,7 +187,7 @@ export default function AdvancedView({ leads, onRowClick, currentUser, branchRol
                      )}
                  </select>
                  
-                 <div className="flex bg-gray-100 p-1 rounded-lg">
+                 <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto hide-scrollbar w-full sm:w-auto">
                     <button 
                        onClick={() => setViewMode('kanban')}
                        className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900 border border-gray-200/50' : 'text-gray-500 hover:text-gray-700'}`}

@@ -240,14 +240,14 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
       <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Cài đặt Hệ thống</h1>
       
       <Tabs defaultValue="connection" className="w-full">
-        <TabsList className="mb-6 flex flex-col sm:flex-row h-auto w-full bg-gray-100 p-1 rounded-xl gap-1">
-          <TabsTrigger value="connection" className="rounded-lg w-full">Thiết lập</TabsTrigger>
-          <TabsTrigger value="users" className="rounded-lg w-full">Người dùng</TabsTrigger>
-          <TabsTrigger value="branch_roles" className="rounded-lg w-full">Chi nhánh</TabsTrigger>
-          <TabsTrigger value="fields" className="rounded-lg w-full">Cột (Schema)</TabsTrigger>
-          <TabsTrigger value="dropdowns" className="rounded-lg w-full">Quy chuẩn</TabsTrigger>
-          <TabsTrigger value="webhook" className="rounded-lg w-full">API & Webhook</TabsTrigger>
-          <TabsTrigger value="audit" className="rounded-lg w-full">Kho Lưu Vết (Audit)</TabsTrigger>
+        <TabsList className="mb-6 flex flex-row overflow-x-auto h-auto w-full bg-gray-100 p-1 rounded-xl gap-1 hide-scrollbar justify-start">
+          <TabsTrigger value="connection" className="rounded-lg px-4 whitespace-nowrap">Kết nối Google Sheets</TabsTrigger>
+          <TabsTrigger value="users" className="rounded-lg px-4 whitespace-nowrap">Người dùng</TabsTrigger>
+          <TabsTrigger value="branch_roles" className="rounded-lg px-4 whitespace-nowrap">Chi nhánh</TabsTrigger>
+          <TabsTrigger value="fields" className="rounded-lg px-4 whitespace-nowrap">Cột (Schema)</TabsTrigger>
+          <TabsTrigger value="dropdowns" className="rounded-lg px-4 whitespace-nowrap">Quy chuẩn</TabsTrigger>
+          <TabsTrigger value="webhook" className="rounded-lg px-4 whitespace-nowrap">API & Webhook</TabsTrigger>
+          <TabsTrigger value="audit" className="rounded-lg px-4 whitespace-nowrap">Kho Lưu Vết (Audit)</TabsTrigger>
         </TabsList>
         
         <TabsContent value="connection" className="space-y-6 outline-none">
