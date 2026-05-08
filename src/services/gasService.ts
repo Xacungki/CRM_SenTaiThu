@@ -235,6 +235,22 @@ export const gasService = {
     }
   },
 
+  async updateDropdowns(dropdowns: Record<string, string[]>): Promise<boolean> {
+    const url = getGasUrl();
+    if (!url) return false;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'UPDATE_DROPDOWNS', data: dropdowns })
+      });
+      const json = await response.json();
+      return json.status === 'success';
+    } catch (error) {
+      return false;
+    }
+  },
+
   async addAuditLog(log: any): Promise<boolean> {
     const url = getGasUrl();
     if (!url) return false;

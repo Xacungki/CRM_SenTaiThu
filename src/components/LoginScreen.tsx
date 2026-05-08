@@ -32,14 +32,11 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
          u.password === password
       );
 
-      // FORCE GOOGLE SHEETS ONLY MODE (NO FIREBASE)
-      localStorage.setItem('sen_crm_use_firebase_offline', 'true');
-
       if (foundUser) {
          if (foundUser.status !== 'Active' && foundUser.status !== ('Hoạt động' as any)) {
-            toast.error('Tài khoản đã bị khóa.');
-            setLoading(false);
-            return;
+             toast.error('Tài khoản đã bị khóa.');
+             setLoading(false);
+             return;
          }
          
          // Special case for bootstrapping admin

@@ -23,6 +23,7 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
   const [schema, setSchema] = useState<string[]>([]);
   const [branchRoles, setBranchRoles] = useState<BranchRole[]>([]);
   const [loadingBranchRoles, setLoadingBranchRoles] = useState(false);
+  const [dropdowns, setDropdowns] = useState<Record<string, string[]>>({});
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [auditMonth, setAuditMonth] = useState('');
@@ -47,15 +48,17 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
     setLoadingAudit(true);
     try {
        // Only use Google Sheets directly
-       const [u, logs, br] = await Promise.all([
+       const [u, logs, br, dd] = await Promise.all([
           gasService.getUsers(),
           gasService.getAuditLogs(),
-          gasService.getBranchRoles()
+          gasService.getBranchRoles(),
+          gasService.getDropdowns()
        ]);
        
        setUsers(u);
        setBranchRoles(br);
        setAuditLogs(logs);
+       setDropdowns(dd || {});
     } catch(e) {
        console.error("fetchData Error:", e);
     } finally {
@@ -150,6 +153,46 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
      }
   };
 
+  const saveDropdownsToGas = async (newDropdowns: Record<string, string[]>) => {
+     toast.loading('Đang ghi Quy chuẩn vào Google Sheets...', { id: 'save-dropdowns' });
+     const ok = await gasService.updateDropdowns(newDropdowns);
+     if (ok) {
+        toast.success('Đã đồng bộ Quy chuẩn với Google Sheets thành công.', { id: 'save-dropdowns' });
+     } else {
+        toast.error('Lỗi đồng bộ Quy chuẩn.', { id: 'save-dropdowns' });
+     }
+  };
+
+  const handleUpdateDropdownCategory = (oldKey: string, newKey: string) => {
+      const newDps = {...dropdowns};
+      if (newKey !== oldKey) {
+          newDps[newKey] = newDps[oldKey] || [];
+          delete newDps[oldKey];
+      }
+      setDropdowns(newDps);
+      saveDropdownsToGas(newDps);
+  };
+
+  const handleAddDropdownCategory = () => {
+      const newDps = {...dropdowns, ['Danh mục mới ' + (Object.keys(dropdowns).length + 1)]: [] };
+      setDropdowns(newDps);
+      saveDropdownsToGas(newDps);
+  };
+
+  const handleDeleteDropdownCategory = (key: string) => {
+      if(!window.confirm("Xóa danh mục quy chuẩn này?")) return;
+      const newDps = {...dropdowns};
+      delete newDps[key];
+      setDropdowns(newDps);
+      saveDropdownsToGas(newDps);
+  };
+
+  const handleUpdateDropdownValues = (key: string, valuesStr: string) => {
+      const newDps = {...dropdowns, [key]: valuesStr.split(',').map(v => v.trim()).filter(Boolean)};
+      setDropdowns(newDps);
+      saveDropdownsToGas(newDps);
+  };
+
   const handleAddBranchRole = () => {
      const newRoles = [...branchRoles, { branch: 'Chi nhánh Mới', adminAccount: '', assignedStaff: '' }];
      setBranchRoles(newRoles);
@@ -202,6 +245,7 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
           <TabsTrigger value="users" className="rounded-lg w-full">Người dùng</TabsTrigger>
           <TabsTrigger value="branch_roles" className="rounded-lg w-full">Chi nhánh</TabsTrigger>
           <TabsTrigger value="fields" className="rounded-lg w-full">Cột (Schema)</TabsTrigger>
+          <TabsTrigger value="dropdowns" className="rounded-lg w-full">Quy chuẩn</TabsTrigger>
           <TabsTrigger value="webhook" className="rounded-lg w-full">API & Webhook</TabsTrigger>
           <TabsTrigger value="audit" className="rounded-lg w-full">Kho Lưu Vết (Audit)</TabsTrigger>
         </TabsList>
@@ -539,6 +583,78 @@ export default function Settings({ initialSchema = [] }: SettingsProps) {
             </CardContent>
            </Card>
         </TabsContent>
+
+        <TabsContent value="dropdowns" className="space-y-6 outline-none">
+           <Card className="shadow-sm border-gray-200">
+             <CardHeader className="bg-gray-50/50 border-b border-gray-100/50 rounded-t-xl px-6 py-5 flex flex-row items-center justify-between">
+               <div>
+                 <CardTitle className="text-lg font-semibold text-gray-900">Quản lý Quy chuẩn (Dropdowns)</CardTitle>
+                 <CardDescription className="text-gray-600 mt-2 text-sm leading-relaxed">
+                    Danh sách các tuỳ chọn xuất hiện trong các trường dữ liệu ở Form và Bảng dữ liệu.
+                 </CardDescription>
+               </div>
+               <Button onClick={handleAddDropdownCategory} size="sm" className="bg-gray-900 hover:bg-black text-white gap-2">
+                 <Plus className="w-4 h-4" /> Thêm Danh mục
+               </Button>
+             </CardHeader>
+             <CardContent className="p-0">
+                {Object.keys(dropdowns || {}).length === 0 ? (
+                   <div className="p-8 text-center text-sm text-gray-500">Chưa có quy chuẩn nào được định nghĩa.</div>
+                ) : (
+                   <div className="w-full overflow-x-auto">
+                   <Table>
+                     <TableHeader className="bg-gray-50">
+                       <TableRow>
+                         <TableHead className="w-[200px]">Tên Danh Mục (Trường)</TableHead>
+                         <TableHead>Các Giá Trị (Cách nhau bằng dấu phẩy)</TableHead>
+                         <TableHead className="w-[80px]"></TableHead>
+                       </TableRow>
+                     </TableHeader>
+                     <TableBody>
+                       {Object.entries(dropdowns || {}).map(([category, values], i) => {
+                         const isSystem = ['Nguồn', 'Chi nhánh', 'Phân loại Data', 'Tình trạng chốt', 'Chăm sóc lần'].includes(category);
+                         return (
+                           <TableRow key={i}>
+                             <TableCell className="align-top pt-4">
+                               <Input 
+                                 value={category} 
+                                 onChange={e => handleUpdateDropdownCategory(category, e.target.value)} 
+                                 className="h-8 shadow-none w-full font-medium" 
+                                 disabled={isSystem}
+                               />
+                               {isSystem && <p className="text-[10px] text-gray-400 mt-1">Danh mục hệ thống (Thường khuyên dùng)</p>}
+                             </TableCell>
+                             <TableCell className="align-top pt-4">
+                               <Input 
+                                 defaultValue={(values || []).join(', ')} 
+                                 onBlur={e => handleUpdateDropdownValues(category, e.target.value)} 
+                                 className="h-8 shadow-none w-full" 
+                                 placeholder="Ví dụ: Nóng, Lạnh, Ấm..."
+                               />
+                               <div className="mt-2 flex flex-wrap gap-1">
+                                 {(values || []).map((v, idx) => (
+                                   <span key={idx} className="bg-gray-100 border border-gray-200 text-gray-700 text-[10px] px-1.5 py-0.5 rounded">{v}</span>
+                                 ))}
+                               </div>
+                             </TableCell>
+                             <TableCell className="align-top pt-4">
+                               {!isSystem && (
+                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteDropdownCategory(category)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 relative z-10">
+                                   <Trash2 className="w-4 h-4" />
+                                 </Button>
+                               )}
+                             </TableCell>
+                           </TableRow>
+                         );
+                       })}
+                     </TableBody>
+                   </Table>
+                   </div>
+                )}
+             </CardContent>
+           </Card>
+        </TabsContent>
+
         <TabsContent value="webhook" className="space-y-6 outline-none">
            <Card className="shadow-sm border-gray-200">
              <CardHeader className="bg-gray-50/50 border-b border-gray-100/50 rounded-t-xl px-6 py-5">
@@ -985,6 +1101,29 @@ function doPost(e) {
        if (payload && payload.length) {
          const rows = payload.map(r => [r['Chi nhánh'], r['Tài khoản Admin'], r['Nhân viên được chỉ định']]);
          branchSheet.getRange(2, 1, rows.length, 3).setValues(rows);
+       }
+       SpreadsheetApp.flush();
+       return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === 'UPDATE_DROPDOWNS') {
+       let dropdownSheet = ss.getSheetByName('DROPDOWNS');
+       if (!dropdownSheet) dropdownSheet = ss.insertSheet('DROPDOWNS');
+       dropdownSheet.clear();
+       if (payload && typeof payload === 'object') {
+         const keys = Object.keys(payload);
+         if (keys.length > 0) {
+           dropdownSheet.appendRow(keys);
+           let maxLength = 0;
+           keys.forEach(k => { if(payload[k].length > maxLength) maxLength = payload[k].length; });
+           if (maxLength > 0) {
+             const maxRows = [];
+             for (let i = 0; i < maxLength; i++) {
+               maxRows.push(keys.map(k => payload[k][i] || ""));
+             }
+             dropdownSheet.getRange(2, 1, maxLength, keys.length).setValues(maxRows);
+           }
+         }
        }
        SpreadsheetApp.flush();
        return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
